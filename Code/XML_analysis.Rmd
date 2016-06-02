@@ -1,0 +1,98 @@
+---
+title: "XML data analysis"
+output: 
+  html_notebook: 
+    toc: yes
+---
+
+```{r setup}
+knitr::opts_chunk$set(include = FALSE)
+library(XML)
+library(dplyr)
+```
+
+# Main issues
+1. Data is stored in a series of xml files
+2. Each xml file is many xml documents stitched together
+3. Extracting relatvent data from each xml document. 
+4. These problems are associated with the XML data, before Jan2002 a different data format is used. (SGML & APS?) <https://bulkdata.uspto.gov/> (scroll down to bibliographic data)
+
+# Introduction
+
+The data is stored in a series of xml documents (representing patents issued that week). We are using the latest release "ipg150428" released 2015-04-28 as a test document to see how to read and store relevant data. The files are large, approxmately the same size, the test file is 168.4MB.
+
+When attempting to use the xml2 package to read the file into xml we get the following error:
+```{r xml error}
+xml <- xml2::read_xml("testdata.xml")
+```
+By reading the document into R and parsing for the delarations using grep we can see that the problem is **multiple xml declarations** in the document. This implies the file is several thousand xml documents stitched together. . 
+```{r multiple docs}
+lines <- readLines("testdata.xml")
+xmltags <- grep("<?xml", lines)
+num_docs <- length(xmltags)
+```
+Above we cal see there are 7052 xml documents within our xml file, however storing all this as a large character vector creates a large object `r pryr::object_size(lines)/(8*10^6)` MB big. Considering the amount of files needing to be processed there is likely better ways of dealing with this problem. 
+
+
+# XML structure
+We can look at only the first document in the file to get a sense for the structure of the data. 
+
+```{r}
+xml1 <- paste(lines[xmltags[1]:(xmltags[2]-1)], collapse = "")
+xml2::xml_structure(xml2::read_xml(xml1), indent = 4)
+```
+The structure above is not flat so it is not easy to parse. 
+
+The most important piece of the structure here is that all the citations are under the node <us-references-cited> with the tag <us-citation>. But the information stored in these citations are in a tree structure with <patcit>, <category>, and <classification-national> as three branches before the leaf nodes. Finally the final citation is a different structure than the others with only 2 fields <othercit>/<category> and its index in the list. 
+
+# Data frame of one document's citations
+
+The below creates a data frame from the citation documentation of 1 document. 
+```{r, message=FALSE, warning=FALSE}
+parse_xml <- function(text.xml.doc) {
+  doc1_xml <- xmlTreeParse(text.xml.doc, asText = T, useInternalNodes = T)
+  
+  # Creates a nested list of xml structure up to 3 layers deep
+  f <- function(L1) {
+    # Returns the name-value pair of first attribute
+    a <- xmlAttrs(L1)
+    b <- xmlSApply(L1, function(L2) {
+      d <- xmlValue(L2)
+      e <- xmlSApply(L2, xmlValue)
+      ifelse(length(e) == 0, return(d), return(e))
+    })
+    
+    # Convert matrix to named list of characters so unlist retains name information later
+    if (class(b) == "matrix") {
+      nam <- rownames(b)
+      b <- as.character(b)
+      names(b) <- nam
+    }
+    if (!is.null(a)) b <- c(id = a,b)
+    return(b)
+  }
+  
+  citations_listed <- xpathSApply(doc1_xml, "//us-references-cited/us-citation", fun = function(L0) xmlSApply(L0, f))
+  citations.flat <- lapply(citations_listed, unlist)
+  if (length(citations.flat) == 0) return(NULL)
+  
+  df <- data.frame(t(citations.flat[[1]]), stringsAsFactors = F)
+  for(i in 2:(length(citations.flat)))
+    df <- bind_rows(df, as.data.frame(t(citations.flat[[i]]), stringsAsFactors = F))
+  return(df)
+}
+
+df <- parse_xml(xml1)
+```
+Above we can see the patent citation information for the first document in one data frame. There are some anomalies in the naming convention for the first document where 3 of the variables were named with '-' instead of '.' for the others. And the final citation is quite different with only 3 variables category, id, and lengthy text. We will have to see how this compares to other documents. 
+
+```{r loop through each document}
+citation.list <- list() 
+for (i in seq_along(xmltags)) {
+  text.xml.doc <- paste(lines[xmltags[i]:(xmltags[i + 1]-1)], collapse = "")
+  citation.doc <- try(parse_xml(text.xml.doc))
+  citation.list[[i]] <- citation.doc
+}
+
+```
+
