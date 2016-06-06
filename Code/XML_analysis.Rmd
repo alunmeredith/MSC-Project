@@ -23,11 +23,11 @@ The data is stored in a series of xml documents (representing patents issued tha
 
 When attempting to use the xml2 package to read the file into xml we get the following error:
 ```{r xml error}
-xml <- xml2::read_xml("testdata.xml")
+xml <- xml2::read_xml("../DataFiles/testdata.xml")
 ```
 By reading the document into R and parsing for the delarations using grep we can see that the problem is **multiple xml declarations** in the document. This implies the file is several thousand xml documents stitched together. . 
 ```{r multiple docs}
-lines <- readLines("testdata.xml")
+lines <- readLines("../DataFiles/testdata.xml")
 xmltags <- grep("<?xml", lines)
 num_docs <- length(xmltags)
 ```
@@ -94,5 +94,9 @@ for (i in seq_along(xmltags)) {
   citation.list[[i]] <- citation.doc
 }
 
+```
+
+```{r}
+load("../DataFiles/citations.file1")
 ```
 
