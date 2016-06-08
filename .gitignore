@@ -1,2 +1,6 @@
 DataFiles
 Litrature/Papers
+.RData
+.Rhistory
+.Rproj.user
+Project.Rproj
