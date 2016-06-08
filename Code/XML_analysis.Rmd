@@ -17,17 +17,26 @@ library(dplyr)
 3. Extracting relatvent data from each xml document. 
 4. These problems are associated with the XML data, before Jan2002 a different data format is used. (SGML & APS?) <https://bulkdata.uspto.gov/> (scroll down to bibliographic data)
 
-# Introduction
+# Introduction: The data source
+
+There is no known clean / table version of this dataset that I could find. The data is described as the [USPTO Grant Bibliographic](http://www.uspto.gov/learning-and-resources/electronic-data-products/issued-patents-patent-grants-data-products):
+
+    * Files are hosted in two places [here](https://bulkdata.uspto.gov/) and [here](http://patents.reedtech.com/pgrbbib.php)
+    * Each file is approximately 5MB compressed, representing 1 week of patent issues
+    * The standards for encoding this data change fairly frequently, since 2002 has been in somme kind of XML standard. 
+        * Documentation of standards found [here](http://www.uspto.gov/learning-and-resources/xml-resources/xml-resources-retrospective)
+    * Each XML file is many (4000+) XML documents stitched together
+
 
 The data is stored in a series of xml documents (representing patents issued that week). We are using the latest release "ipg150428" released 2015-04-28 as a test document to see how to read and store relevant data. The files are large, approxmately the same size, the test file is 168.4MB.
 
 When attempting to use the xml2 package to read the file into xml we get the following error:
-```{r xml error}
-xml <- xml2::read_xml("testdata.xml")
+```{r xml error, eval=F}
+xml <- xml2::read_xml("../DataFiles/testdata.xml")
 ```
 By reading the document into R and parsing for the delarations using grep we can see that the problem is **multiple xml declarations** in the document. This implies the file is several thousand xml documents stitched together. . 
 ```{r multiple docs}
-lines <- readLines("testdata.xml")
+lines <- readLines("../DataFiles/testdata.xml")
 xmltags <- grep("<?xml", lines)
 num_docs <- length(xmltags)
 ```
@@ -72,27 +81,72 @@ parse_xml <- function(text.xml.doc) {
     return(b)
   }
   
-  citations_listed <- xpathSApply(doc1_xml, "//us-references-cited/us-citation", fun = function(L0) xmlSApply(L0, f))
+  # Evaluates to functions above to create nested xml structure of citations for each patent
+  citations_listed <- xpathSApply(doc1_xml, 
+                                  "//us-references-cited/us-citation", 
+                                  fun = function(L0) xmlSApply(L0, f))
+  # Flattens the above structure
   citations.flat <- lapply(citations_listed, unlist)
+  
+  # Exception handling in case no citations for a document
   if (length(citations.flat) == 0) return(NULL)
   
+  # Combines all citations into one data frame
   df <- data.frame(t(citations.flat[[1]]), stringsAsFactors = F)
-  for(i in 2:(length(citations.flat)))
+  for (i in 2:(length(citations.flat))) {
     df <- bind_rows(df, as.data.frame(t(citations.flat[[i]]), stringsAsFactors = F))
-  return(df)
+  }
+  
+  doc.id <- xpathSApply(doc1_xml,
+                        "//us-bibliographic-data-grant/publication-reference/document-id/doc-number",
+                        xmlValue)
+
+  # Return the df as a named element of a list
+  return.object <- list()
+  return.object[[get("doc.id")]] <- df
+  return(return.object)
 }
 
 df <- parse_xml(xml1)
 ```
 Above we can see the patent citation information for the first document in one data frame. There are some anomalies in the naming convention for the first document where 3 of the variables were named with '-' instead of '.' for the others. And the final citation is quite different with only 3 variables category, id, and lengthy text. We will have to see how this compares to other documents. 
 
+Below we run the "parse_xml" function defined above over one whole document. It takes 9 minutes to evaluate this file and experiences approximately 16 errors due to premature end of data in tags and extra content at the end of the document
 ```{r loop through each document}
-citation.list <- list() 
-for (i in seq_along(xmltags)) {
+t <- Sys.time()
+citation.list <- NULL
+for (i in 1:(length(xmltags)-1)) {
   text.xml.doc <- paste(lines[xmltags[i]:(xmltags[i + 1]-1)], collapse = "")
   citation.doc <- try(parse_xml(text.xml.doc))
-  citation.list[[i]] <- citation.doc
+  citation.list <- c(citation.list, citation.doc)
 }
+save(citation.list, file = "../DataFiles/citations.file1")
+Sys.time() - t
+```
+## Analysing 
 
+Looking only at the number of citations each patent recieves we can see a large range which loosely follows a normal distribution if scaled logarithmically. The majority of patents have between around 5-80 citations. 
+```{r number of citations}
+#load("../DataFiles/citations.file1")
+num.citations <- sapply(citation.list, nrow) %>% unlist
+ggplot(data = as.data.frame(num.citations), aes(x = num.citations)) + 
+    geom_density() +
+    scale_x_log10()
+summary(num.citations)
+```
+
+Looking at the different variables extracted we can see some cleaning will be necessary. The number of patents in this file is `r length(citation.list)` but the most frequent occurance of a variable is less than 6000. There is also variation in naming convention e.g. "doc-number" and "doc.number". There are a few variables with very low numbers of occurances such as "o" and "img"
+```{r number of variables}
+sapply(citation.list, names) %>% unlist() %>% table()
+```
+
+```{r}
+citation.df <- data.frame()
+for (i in 1:length(citation.list)) {
+    citation.list[[i]]$patent.id <- names(citation.list[i])
+    citation.df <<- bind_rows(citation.df, citation.list[[i]])
+}
+names(citation.df) <- make.names(names(citation.df))
+save(citation.df, file = "../DataFiles/citation.df1.dat")
 ```
 

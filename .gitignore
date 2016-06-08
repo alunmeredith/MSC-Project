@@ -1,6 +1,10 @@
 DataFiles
 Litrature/Papers
+<<<<<<< HEAD
 .RData
 .Rhistory
 .Rproj.user
 Project.Rproj
+=======
+.Rproj.user
+>>>>>>> b56feb2e1d0da4ad964b3afdd77104c59ac15037
