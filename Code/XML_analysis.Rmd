@@ -9,6 +9,7 @@ output:
 knitr::opts_chunk$set(include = FALSE)
 library(XML)
 library(dplyr)
+library(ggplot2)
 ```
 
 # Main issues
@@ -21,11 +22,11 @@ library(dplyr)
 
 There is no known clean / table version of this dataset that I could find. The data is described as the [USPTO Grant Bibliographic](http://www.uspto.gov/learning-and-resources/electronic-data-products/issued-patents-patent-grants-data-products):
 
-    * Files are hosted in two places [here](https://bulkdata.uspto.gov/) and [here](http://patents.reedtech.com/pgrbbib.php)
-    * Each file is approximately 5MB compressed, representing 1 week of patent issues
-    * The standards for encoding this data change fairly frequently, since 2002 has been in somme kind of XML standard. 
-        * Documentation of standards found [here](http://www.uspto.gov/learning-and-resources/xml-resources/xml-resources-retrospective)
-    * Each XML file is many (4000+) XML documents stitched together
+* Files are hosted in two places [here](https://bulkdata.uspto.gov/) and [here](http://patents.reedtech.com/pgrbbib.php)
+* Each file is approximately 5MB compressed, representing 1 week of patent issues
+* The standards for encoding this data change fairly frequently, since 2002 has been in somme kind of XML standard. 
+    * Documentation of standards found [here](http://www.uspto.gov/learning-and-resources/xml-resources/xml-resources-retrospective)
+* Each XML file is many (4000+) XML documents stitched together
 
 
 The data is stored in a series of xml documents (representing patents issued that week). We are using the latest release "ipg150428" released 2015-04-28 as a test document to see how to read and store relevant data. The files are large, approxmately the same size, the test file is 168.4MB.
@@ -46,7 +47,7 @@ Above we cal see there are 7052 xml documents within our xml file, however stori
 # XML structure
 We can look at only the first document in the file to get a sense for the structure of the data. 
 
-```{r}
+```{r xml structure}
 xml1 <- paste(lines[xmltags[1]:(xmltags[2]-1)], collapse = "")
 xml2::xml_structure(xml2::read_xml(xml1), indent = 4)
 ```
@@ -120,7 +121,7 @@ for (i in 1:(length(xmltags)-1)) {
   citation.doc <- try(parse_xml(text.xml.doc))
   citation.list <- c(citation.list, citation.doc)
 }
-save(citation.list, file = "../DataFiles/citations.file1")
+save(citation.list, file = "../DataFiles/citations.file1.dat")
 Sys.time() - t
 ```
 ## Analysing 
@@ -141,6 +142,7 @@ sapply(citation.list, names) %>% unlist() %>% table()
 ```
 
 ```{r}
+t <- Sys.time()
 citation.df <- data.frame()
 for (i in 1:length(citation.list)) {
     citation.list[[i]]$patent.id <- names(citation.list[i])
@@ -148,5 +150,6 @@ for (i in 1:length(citation.list)) {
 }
 names(citation.df) <- make.names(names(citation.df))
 save(citation.df, file = "../DataFiles/citation.df1.dat")
+Sys.time() - t
 ```
 
