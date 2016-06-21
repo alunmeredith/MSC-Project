@@ -76,7 +76,7 @@ parse_file <- function(file.txt) {
         if (class(parsed.xml) !=  "try-error") {
             citaiton.info.file.old <- citation.info.file
             citation.info.file <- tryCatch(rbind(citation.info.file, parsed.xml$citation.info), error = function(e) e)
-            if (is(citation.info.file, "error")) browser()
+            if (is(citation.info.file, "error")) citation.info.file <- NULL
             patent.info.file <- rbind(patent.info.file, parsed.xml$patent.info)
             if (length(parsed.xml$incorrect.attr) > 0) {
                 incorrect.attr.file <- rbind(incorrect.attr.file, parsed.xml$incorrect.attr)
