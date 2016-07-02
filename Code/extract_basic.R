@@ -5,13 +5,14 @@
 # means that R must be restarted but doesn't get stuck at the same point. 
 
 # Define lookup tables of xml paths to extract based on year
-Xpath_tbl_patent <- data.frame(Year = 2016:2002,
+Xpath_tbl_patent <- data.frame(Year = 2016:2004,
                     patent_no = "//us-bibliographic-data-grant/publication-reference/document-id/doc-number",
                     pub_date = "//us-bibliographic-data-grant/publication-reference/document-id/date",
                     stringsAsFactors = F)
 
-Xpath_tbl_cit <- data.frame(Year = 2016:2002,
-                            Roots = "//us-references-cited/us-citation/patcit/document-id",
+Xpath_tbl_cit <- data.frame(Year = 2016:2004,
+                            Roots = c(rep("//us-references-cited/us-citation/patcit/document-id",4), #2016-2013
+                            rep("//references-cited/citation/patcit/document-id", 9)), #2012-10
                             patent_no = "doc-number",
                             #name = "name",
                             date = "date",
@@ -39,7 +40,7 @@ parse_xml <- function(doc.txt, yr, XPATH_tbl_patent = Xpath_tbl_patent, XPATH_tb
     cit_info <- matrix(NA, nrow = length(Roots), ncol = length(XPATH_ls))
     colnames(cit_info) <- names(XPATH_ls)
     
-    # This is the primary place refactoring can improve processing speed    
+    # This is the primary place refactoring can improve processing speed as xml_find_one is looped through many times
     for (i in seq_along(XPATH_ls)) {
         cit_info[,i] <- sapply(Roots, function(x) {
             tryCatch({xml_find_one(x, XPATH_ls[[i]]) %>% xml_contents() %>% as.character()},
@@ -62,14 +63,16 @@ parse_file <- function(file.txt, year) {
     pb <- txtProgressBar(min = 0, max = length(xmltags), style = 3)
     # Loop over each xml document in the file
     for (i in 2:length(xmltags)) {
-    #for (i in 2:200) { ######## TEST CODE, restricts number of files processed to 5 #############
+    #for (i in 1610:length(xmltags)) { ######## TEST CODE, restricts number of files processed to 5 #############
+        #browser()
         # Display a progress bar
         setTxtProgressBar(pb, i)
         # Define the xml document 
         xml <- paste(lines[xmltags[i-1]:(xmltags[i]-1)], collapse = "")
         # Parse document
         parsed.xml <- tryCatch(parse_xml(xml, year), error = function(e) {print(e); return(NA)})
-        if (anyNA(parsed.xml) | (nrow(parsed.xml$cit_info) == 0)) next
+        if (anyNA(parsed.xml)) next 
+        if (nrow(parsed.xml$cit_info) == 0) next
         # Link parent doc-id to citation df
         parsed.xml$cit_info <- cbind(parent = parsed.xml$patent_info$patent_no, parsed.xml$cit_info)
         # Bind citation df/patent df as one file
@@ -91,6 +94,7 @@ parse_directory <- function(year) {
     files <- list.files(read.dir)
     require(stringr)
     files.xml <- str_subset(files, "\\.xml")
+    files.xml <- str_subset(files.xml, "^((?!cat).)*$")
     # Read files which have already been processed
     files.processed <- list.files(paste0(write.dir, "/citations"))
     if (length(files.processed) > 0) {
@@ -128,7 +132,6 @@ parse_directory <- function(year) {
         write_csv(as.data.frame(patents.missing), paste0(write.dir, "/misspat/", files.root[i], ".csv"))
     }
 }    
-    
 # Test Code ##############
 
 ## Test parse_xml
@@ -137,11 +140,14 @@ parse_directory <- function(year) {
 # doc.txt <- paste(lines, collapse = "")
 # parse_xml(doc.txt, 2016)
 
-## Test parse_file
+# # Test parse_file
 # time <- Sys.time()
-# file.txt <- "DataFiles/sample_2016_file.xml"
-# t <- parse_file(file.txt, 2016)
+# file.txt <- "DataFiles/Raw/2013/ipgb20130101.xml"
+# t <- parse_file(file.txt, 2013)
 # print(Sys.time() - time)
 
 # Test parse_directory
-parse_directory(2015)
+for (i in 2013) {
+    parse_directory(i)
+}
+#2007
