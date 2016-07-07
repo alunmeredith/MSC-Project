@@ -115,7 +115,7 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
     text <- read_lines(input_path)
     
     ## LOOP ############################################################
-    pb <- txtProgressBar(min = 0, max = length(lines), initial = 0, style = 3)
+    pb <- txtProgressBar(min = 0, max = length(text), initial = 0, style = 3)
     initialise_result()
     for (i in seq_along(text)) {
         line <- text[i]
