@@ -1,9 +1,16 @@
 parse <- function(input_path, type, output_path_patent, output_path_citation) {
     # Libraries 
     require(stringr)
+    require(readr)
     
     # Save environment to reference
     Env <- environment()
+    
+    # Create output paths if they don't exist
+    dirs <- str_replace_all(c(output_path_patent, output_path_citation), "/[0-9]+.csv$", "")
+    sapply (dirs, function(dir) {
+        if (!dir.exists(dir)) dir.create(dir, recursive = T)
+    })
     
     # ACtions ##########################################################
     
@@ -104,13 +111,16 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
                              state_change_citation, initialise_result,
                              add_citation_information, add_patent_information)
     
-    
-    t <- Sys.time()
     # Read data
     text <- read_lines(input_path)
+    
     ## LOOP ############################################################
+    pb <- txtProgressBar(min = 0, max = length(lines), initial = 0, style = 3)
     initialise_result()
-    for (line in text) {
+    for (i in seq_along(text)) {
+        line <- text[i]
+        if (i %% 1000 == 0) setTxtProgressBar(pb, i)
+        
         # Turn current line into a tag (acts differently for text / sgml)
         line_tag <- ifelse(type == "text", 
                            substring(line, 1, 4), 
@@ -122,16 +132,14 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
         
         # If match occurs invoke the appropriate action function
         if (length(matches) > 0) {
-            print(matches)
+            #print(matches)
             lapply(matches, function(x) action_functions[[x]]())
         }
     }
     if (type == "text") flush_patent() #Because text doesn't have close tags
-    print(Sys.time() - t)
+    close(pb)
 }
 
 # # Test
-# t <- Sys.time()
-parse(input_path  = "DataFiles/Sample_2003_doc.xml", type = "sgml", output_path_patent = "t.csv", output_path_citation = "t2.csv")
-# print(Sys.time() - t)
+#parse(input_path  = "DataFiles/Raw/2003/pgb20030114.xml", type = "sgml", output_path_patent = "t.csv", output_path_citation = "t2.csv")
 
