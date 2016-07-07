@@ -68,9 +68,9 @@ parse_file_txt <- function(file.txt) {
     return(list(citations = citations, patents = patent))
 }
 
-for (yr in 1990) {
-    parsed <- parse_file_txt(paste0("DataFiles/Raw/", yr, "/", yr, ".dat"))
-    write_csv(as.data.frame(parsed$citations), paste0("DataFiles/Processed/", yr, "_citations.csv"))
-    write_csv(as.data.frame(parsed$patents), paste0("DataFiles/Processed/", yr, "_patents.csv"))
-    gc()
-}
+# for (yr in 1990) {
+#     parsed <- parse_file_txt(paste0("DataFiles/Raw/", yr, "/", yr, ".dat"))
+#     write_csv(as.data.frame(parsed$citations), paste0("DataFiles/Processed/", yr, "_citations.csv"))
+#     write_csv(as.data.frame(parsed$patents), paste0("DataFiles/Processed/", yr, "_patents.csv"))
+#     gc()
+# }
