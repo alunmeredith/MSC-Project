@@ -7,8 +7,8 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
     Env <- environment()
     
     # Create output paths if they don't exist
-    dirs <- str_replace_all(c(output_path_patent, output_path_citation), "/[0-9]+.csv$", "")
-    sapply (dirs, function(dir) {
+    dirs <- str_replace_all(c(output_path_patent, output_path_citation), "/.+.csv$", "")
+    sapply(dirs, function(dir) {
         if (!dir.exists(dir)) dir.create(dir, recursive = T)
     })
     
@@ -46,7 +46,7 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
     # Upon finding relevant information add to patent/citation output
     add_patent_information <- function(tag = line_tag, State = state, 
                                        vars = tag_add_patent_information) {
-        #if (State != "patent") return()
+        if (State != "patent") return()
         i <- match(tag, vars)
         patent[i] <<- contents()
     }
@@ -64,6 +64,9 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
     }
     state_change_citation <- function() {
         state <<- "citation"
+    }
+    state_change_none <- function() {
+        state <<- "none"
     }
     
     # Function to get contents (so not evaluated every line) 
@@ -86,8 +89,18 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
                tag_add_citation_information <- c("ISD ", "PNO ")
                tag_state_change_citation <- c("UREF", "FREF")
                tag_state_change_patent <- "PATN"
+               tag_state_change_none <- NULL
            },
-           xml = {},
+           xml = {
+               tag_initialise_result <- '<?xml version="1.0" encoding="UTF-8"?>'
+               tag_flush_patent <- '</us-patent-grant>'
+               tag_flush_citation <- c("</us-citation>", "</citation>")
+               tag_add_patent_information <- c("<doc-number></doc-number>", "<date></date>")
+               tag_add_citation_information <- c("<doc-number></doc-number>", "<date></date>")
+               tag_state_change_citation <- c("<us-citation>", "<citation>")
+               tag_state_change_patent <- "<publication-reference>"
+               tag_state_change_none <- c("</publication-reference>", "</us-ciation>", "</citation>")
+           },
            sgml = {
                tag_initialise_result <- '<SDOBI>'
                tag_flush_patent <- "</SDOBI>"
@@ -98,17 +111,18 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
                                                  "<DATE><PDAT></PDAT></DATE>")
                tag_state_change_citation <- "<B561>"
                tag_state_change_patent <- '<SDOBI>'
+               tag_state_change_none <- NULL
            })
     
     # Initialise total taglist and response index
     tag_list <- list(tag_flush_citation, tag_flush_patent, tag_state_change_patent, 
-                     tag_state_change_citation, tag_initialise_result,
+                     tag_state_change_citation, tag_state_change_none, tag_initialise_result,
                      tag_add_citation_information, tag_add_patent_information)
     tag_all <- unlist(tag_list)
     tag_index <- rep(1:length(tag_list), sapply(tag_list, length))
     # Vectorise action functions in same order as tags which call them
     action_functions <- list(flush_citation, flush_patent,  state_change_patent, 
-                             state_change_citation, initialise_result,
+                             state_change_citation, state_change_none, initialise_result,
                              add_citation_information, add_patent_information)
     
     # Read data
@@ -132,7 +146,6 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
         
         # If match occurs invoke the appropriate action function
         if (length(matches) > 0) {
-            #print(matches)
             lapply(matches, function(x) action_functions[[x]]())
         }
     }
@@ -140,6 +153,4 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
     close(pb)
 }
 
-# # Test
-#parse(input_path  = "DataFiles/Raw/2003/pgb20030114.xml", type = "sgml", output_path_patent = "t.csv", output_path_citation = "t2.csv")
 
