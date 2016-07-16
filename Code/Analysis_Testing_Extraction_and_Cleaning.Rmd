@@ -1,0 +1,55 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This notebook is trying to analyse the accuracy of the parsing of the data by comparing our results to other sources. A comparison of our results to valverde can be found in "Analysis_Reproducing_Valverde.Rmd". 
+
+We aim to:
+
+ * Parse the 2001 data both through sgml, and .txt formats and compare the differences. 
+ * Compare patent counts to uspto summary statistics [](http://www.uspto.gov/web/offices/ac/ido/oeip/taf/us_stat.htm)
+ * Compare patent counts to "...lst.txt" files which list the patents present in the files. 
+
+# Parse 2001 both ways and compare
+
+### Comparing patent counts to uspto summary statistics 
+```{r}
+# http://www.uspto.gov/web/offices/ac/ido/oeip/taf/us_stat.htm
+yearcounts <- rev(c(325979,326032,302948,276788,247716,244341,191927,185224,182899,196405,157718,181299,187012,184375,183970,175979,169085,163142,124069,121696,113834,113587,109746,107394,106696,99077,102533,84272,89385,76862,77245,72650,61982,63276,71064,66170,52413,70514,69781,75388))
+
+```
+
+### Comparing patent counts to uspto list files 
+
+The list files are present in the raw data from 1997.
+They are a mirror of a data file containing a list of the patent numbers recorded in that file. 
+
+```{r build an r object list}
+yrs <- (1997:2015)
+lst.full <- NULL
+for (yr in yrs) {
+    path <- paste0("../DataFiles/Raw/", yr)
+    files <- list.files(path, full.names = TRUE)
+    files <- stringr::str_subset(files, "lst")
+    cat <- stringr::str_subset(files, "cat")
+    if (length(cat) > 0 ) files <- cat
+    
+    lst.cat <- NULL
+    for (file in files) {
+        lst <- readr::read_lines(file)
+        lst.cat <- c(lst.cat, lst)
+    }
+    lst.full[[make.names(yr)]] <- lst.cat
+}
+
+saveRDS(lst.full, "lst.rda")
+```
+
+```{r}
+yrs <- sapply(names(lst.full), function(x) as.numeric(substring(x, 2)))
+npats <- sapply(lst.full, length)
+lst.df <- data.frame(year = yrs, count = npats)
+plot(lst.df)
+```
+

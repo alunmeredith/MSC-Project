@@ -1,16 +1,16 @@
 # This function cycles through a directory (year) and parses it acording to the above two functions and saves them 
-parse_directory <- function(year) {
+parse_directory <- function(year, prefer.cat = TRUE) {
     require(stringr)
     source("Code/Parse_Directory_statebased.R")
-    # Find the type of datafile based on year
+    # Find the doc_type of datafile based on year
     if (year %in% 2005:2016) {
-        type <- "xml"
+        doc_type <- "xml"
     } else 
-    if (year %in% 2001:2004) {
-        type <- "sgml"
+    if (year %in% 2002:2004) {
+        doc_type <- "sgml"
     } else 
     if (year %in% 1976:2001) {
-        type <- "text"
+        doc_type <- "text"
     } else stop("year out of bounds")
     
     ##### DEFINITIONS ############
@@ -21,16 +21,20 @@ parse_directory <- function(year) {
     ##### LIST FILES #############
     # Read files in directory
     files <- list.files(read.dir)
+
     temp <- str_subset(files, "cat")
-    if (length(temp) > 0) files <- temp
+    if (prefer.cat == FALSE) {
+        files <- files[!(files %in% temp)]
+    }
+    if (length(temp) > 0 & doc_type != "text" & prefer.cat == TRUE) files <- temp
     files.lst <- str_subset(files, "lst\\.txt$")
     if (length(files.lst) > 0) {
         lst.paths <- paste0(read.dir, "/", files.lst)
     }
-    if (type %in% c("xml", "sgml")) {
+    if (doc_type %in% c("xml", "sgml")) {
         files <- str_subset(files, "\\.xml")
     } else 
-    if (type == "text") {
+    if (doc_type == "text") {
         files <- str_subset(files, "\\.dat")
     }
     
@@ -46,22 +50,22 @@ parse_directory <- function(year) {
     
     files.root <- str_replace(files, "\\..{3}", "") 
     file.paths <- paste0(read.dir, "/", files)
-
     for (i in seq_along(files)) {
         print(sprintf("Processing: %s (%i/%i)", files.root[i], i, length(files)))
         t <- Sys.time()
         
-        parse(input_path = file.paths[i], "text", output_path_patent = paste0(write.dir, "patent/" ,year, ".csv"),
-              output_path_citation = paste0(write.dir, "citation/", year, ".csv"))
+        out_pat <-  paste0(write.dir, "patent/" ,year, ".csv")
+        out_cit <- paste0(write.dir, "citation/", year, ".csv")
+        parse(input_path = file.paths[i], type = doc_type, output_path_patent = out_pat, output_path_citation = out_cit)
         
         print(paste("Time to process: ", Sys.time() - t))
         if (length(files) > 1) print(paste("Estimated time rematining:", (length(files) - i)*(Sys.time()-t)))
         
-        if (exists("lst.paths")) {
-            patent.list <- read_lines(lst.paths[i])
-            patents.missing <- patent.list[!(patent.list %in% parsed$patents$patent_no)]
-            write_csv(as.data.frame(patents.missing), paste0(write.dir, "/misspat/", files.root[i], ".csv"))
-        }
+        # if (exists("lst.paths")) {
+        #     patent.list <- read_lines(lst.paths[i])
+        #     patents.missing <- patent.list[!(patent.list %in% parsed$patents$patent_no)]
+        #     write_csv(as.data.frame(patents.missing), paste0(write.dir, "/misspat/", files.root[i], ".csv"))
+        # }
     }
 }    
 
