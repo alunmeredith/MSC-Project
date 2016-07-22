@@ -12,7 +12,7 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
         if (!dir.exists(dir)) dir.create(dir, recursive = T)
     })
     
-    # ACtions ##########################################################
+    # Actions ##########################################################
     
     # Initialise output vecotrs for patent / citations upon reaching a new patent
     initialise_result <- function() {
@@ -37,7 +37,7 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
     
     # Add current citation to citations matrix after finding the end of the current citaiton
     flush_citation <- function() {
-        if (sum(citation_current != c("","")) > 0) {
+        if (sum(citation_current != c("","", "")) > 0) {
             citations <<- rbind(citations, c(patent[1], citation_current))
             citation_current <<- vector("character", length = length(tag_add_citation_information))
         }
@@ -89,7 +89,7 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
                tag_add_citation_information <- c( "PNO ", "ISD ")
                tag_state_change_citation <- c("UREF", "FREF")
                tag_state_change_patent <- "PATN"
-               tag_state_change_none <- NULL
+               tag_state_change_none <- c("INVT","CLAS")
            },
            xml = {
                tag_initialise_result <- '<?xml version="1.0" encoding="UTF-8"?>'
@@ -108,7 +108,8 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
                tag_add_patent_information <- c("<B110><DNUM><PDAT></PDAT></DNUM></B110>",
                                                "<B140><DATE><PDAT></PDAT></DATE></B140>")
                tag_add_citation_information <- c("<DOC><DNUM><PDAT></PDAT></DNUM>", 
-                                                 "<DATE><PDAT></PDAT></DATE>")
+                                                 "<DATE><PDAT></PDAT></DATE>",
+                                                 "<DATE><PDAT></PDAT></DATE></DOC>")
                tag_state_change_citation <- "<B561>"
                tag_state_change_patent <- '<SDOBI>'
                tag_state_change_none <- NULL

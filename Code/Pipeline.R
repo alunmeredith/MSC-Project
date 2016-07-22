@@ -1,7 +1,7 @@
 
 # Download Data -----------------------------------------------------------
 
-source("Code/Download_extract.R")
+source("Download_extract.R")
 
 
 # Extract Data  -----------------------------------------------------------
@@ -9,8 +9,8 @@ source("Code/Download_extract.R")
 # patent numbers of each patent and citation (posted to seperate files), 
 # also computes order of each patent. 
 
-source("Code/Parse_File_statebased.R")
-source("Code/Parse_Directory3.R")
+source("Parse_File_statebased.R")
+source("Parse_Directory3.R")
 
 for(yr in 1976:2015) {
     ifelse(yr %in% c(2005,2006), pref <- FALSE, pref <- TRUE)
@@ -20,5 +20,5 @@ for(yr in 1976:2015) {
 
 # Clean Data --------------------------------------------------------------
 # Names columns, Removes Duplicated Values, Concatonates patent data into one df
-source("Code/Cleaning.R")
+source("Cleaning.R")
 

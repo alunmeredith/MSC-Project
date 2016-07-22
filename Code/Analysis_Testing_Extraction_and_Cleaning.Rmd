@@ -1,31 +1,123 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "Parsing Analysis"
+output:
+  html_document: default
+  html_notebook: default
 ---
 
-This notebook is trying to analyse the accuracy of the parsing of the data by comparing our results to other sources. A comparison of our results to valverde can be found in "Analysis_Reproducing_Valverde.Rmd". 
+```{r setup, include=FALSE}
+require(readr)
+require(dplyr)
+require(ggplot2)
+knitr::opts_chunk$set(results = 'hold')
+```
+
+This notebook is trying to analyse the accuracy of the data parsed from the raw download files, to test its accuracy and show that it has been done to a good standard; and identify ways in which this data needs to be cleaned. A comparison of our results to valverde can be found in "Analysis_Reproducing_Valverde.Rmd". 
 
 We aim to:
 
  * Parse the 2001 data both through sgml, and .txt formats and compare the differences. 
- * Compare patent counts to uspto summary statistics [](http://www.uspto.gov/web/offices/ac/ido/oeip/taf/us_stat.htm)
- * Compare patent counts to "...lst.txt" files which list the patents present in the files. 
+ * Compare patent counts to uspto summary statistics [](http://www.uspto.gov/web/offices/ac/ido/oeip/taf/us_stat.htm) and "...lst.txt" files which list patents supposed to be present in the files which have been parsed. 
 
-# Parse 2001 both ways and compare
+In the original data there are 3 different data formats for different periods of time (txt, sgml, xml), only one year 2001 has a crossover of two of those formats, as txt was prioritised we parse the sgml files for that year to compare. 
+```{r parse 2001 sgml, eval=FALSE}
+# Parse 
+source("Parse_directory3.R")
+parse_directory(2001, doc_type = "sgml", write.dir = "../DataFiles/SampleFiles/2001sgml")
+```
 
-### Comparing patent counts to uspto summary statistics 
+## Comparing Patent Files
+##################################################################################################################
+##################################################################################################################
+
+First we apply the basic cleaning of __removing duplicated entries__ and adding a date measure converted into __posixct date format__. 
+```{r read and basic clean data, results='hold'}
+# sgml
+sgml2001 <- read_csv("../DataFiles/SampleFiles/patent/2001.csv", col_names = c("Patent", "Date", "Order"))
+sgml2001 <- unique(sgml2001)
+sgml2001$Date2 <- lubridate::ymd(sgml2001$Date)
+
+# Txt
+txt2001 <- read_csv("../DataFiles/Processed/patent/2001.csv", col_names = c("Patent", "Date", "Order"))
+txt2001 <- unique(txt2001)
+txt2001$Date2 <- lubridate::ymd(txt2001$Date)
+
+head(sgml2001)
+head(txt2001)
+```
+
+Looking at the head of each file we can see a difference, the __text parsing has an additional digit__ at the end of each patent number. If we use the patent [search feature](http://patft.uspto.gov/netahtml/PTO/search-bool.html) on the uspto website. We can see find that the actual patent numbers do not have this extra digit, also they __do not have any '0's at the start__ (after the type character). 
+
 ```{r}
-# http://www.uspto.gov/web/offices/ac/ido/oeip/taf/us_stat.htm
-yearcounts <- rev(c(325979,326032,302948,276788,247716,244341,191927,185224,182899,196405,157718,181299,187012,184375,183970,175979,169085,163142,124069,121696,113834,113587,109746,107394,106696,99077,102533,84272,89385,76862,77245,72650,61982,63276,71064,66170,52413,70514,69781,75388))
+norm <- grepl("^(D|RE|PP|H|T)*0", txt2001$Patent)
+sum(norm)
+length(txt2001$Patent)
+```
+We can see that all the patents processed follows the pattern of a class tag (D,RE,PP,H,T) followed by at least one 0 followed by the patent number. It seems the purpose of the 0 is to pad the patent number to be the same total number of characters. 
 
+We remove the final digit in the txt parsing as an additional cleaning step then compare the two. 
+
+```{r remove extra digit}
+# Remove the extra trialing character from text patent numbers
+txt2001$Patent <- sapply(txt2001$Patent, function(x) substring(x, 1, nchar(x) - 1)) 
+
+# Remove the 0s from text patent numbers
+txt2001$Patent_Raw <- txt2001$Patent
+type_txt <- stringr::str_extract(txt2001$Patent, "^(D|RE|PP|H|T)")
+type_txt[is.na(type_txt)] <- ""
+rem0_txt <- sub("^(D|RE|PP|H|T)*0+", "", txt2001$Patent)
+txt2001$Patent <- paste0(type_txt, rem0_txt)
+
+# Remove the 0s from sgml patent numbers
+sgml2001$Patent_Raw <- sgml2001$Patent
+type_sgml <- stringr::str_extract(sgml2001$Patent, "^(D|RE|PP|H|T)")
+type_sgml[is.na(type_sgml)] <- ""
+rem0_sgml <- sub("^(D|RE|PP|H|T)*0+", "", sgml2001$Patent)
+sgml2001$Patent <- paste0(type_sgml, rem0_sgml)
+```
+
+```{r summary statistics, echo=FALSE}
+sprintf("Patents present in sgml but not txt: %d" , sum(!(sgml2001$Patent %in% txt2001$Patent)))
+sprintf("Patents present in txt but not sgml: %d" , sum(!(txt2001$Patent %in% sgml2001$Patent)))
+dups <- table(duplicated(rbind(txt2001, sgml2001)))
+sprintf("Number of observations not identical in both: %d", dups[1] - dups[2])
+txt2001[!(txt2001$Patent %in% sgml2001$Patent),]
+```
+
+ * We find that the text parsing has `r nrow(txt2001) - nrow(sgml2001)` more entries `r nrow(sgml2001)` vs. `r nrow(txt2001)`
+ * We find there are 94 patents present in the text parsing but not in the sgml parsing but none vice versa. 
+    * Looking at a few of these individually we can confirm that they are patent records rather than accidental parsing of the wrong information. 
+    * __Todo: talk about entries not being the same after reparsed txt with bug fix__
+
+# Patent Counts 
+##################################################################################################################
+##################################################################################################################
+
+For this section we will use the txt data as it is slightly more reliable. 
+The uspto publish summary statisics for patent counts on [their website](http://www.uspto.gov/web/offices/ac/ido/oeip/taf/us_stat.htm) and in later years datafiles are partnered with text files listing the patents present within them (in addition pdfs summarising that week include lists of patents absent from those files, however this is not easily parsable)
+
+```{r read patent_cat}
+our_data <- read_csv("../DataFiles/Cleaned/patent_cat.csv", progress = FALSE)
+```
+
+```{r summarise patent counts}
+our_data$Year <- lubridate::year(our_data$Date2)
+our_data_summary <- our_data %>% group_by(Year) %>% summarise(count = n()) %>% filter(Year %in% 1976:2015)
+```
+
+Unfortunately the data is not easily parsable so has been hard copied from the website, we can compare this with our data. 
+```{r uspto summary stats}
+yearcounts <- rev(c(325979,326032,302948,276788,247716,244341,191927,185224,182899,196405,157718,181299,187012,184375,183970,175979,169085,163142,124069,121696,113834,113587,109746,107394,106696,99077,102533,84272,89385,76862,77245,72650,61982,63276,71064,66170,52413,70514,69781,75388))
 ```
 
 ### Comparing patent counts to uspto list files 
+##################################################################################################################
+##################################################################################################################
 
 The list files are present in the raw data from 1997.
 They are a mirror of a data file containing a list of the patent numbers recorded in that file. 
 
-```{r build an r object list}
+```{r build an r object list, eval=FALSE}
 yrs <- (1997:2015)
 lst.full <- NULL
 for (yr in yrs) {
@@ -42,14 +134,120 @@ for (yr in yrs) {
     }
     lst.full[[make.names(yr)]] <- lst.cat
 }
-
 saveRDS(lst.full, "lst.rda")
 ```
 
-```{r}
+```{r lst file stats}
+lst.full <- readRDS("lst.rda")
 yrs <- sapply(names(lst.full), function(x) as.numeric(substring(x, 2)))
 npats <- sapply(lst.full, length)
 lst.df <- data.frame(year = yrs, count = npats)
-plot(lst.df)
 ```
 
+```{r plot: compare overall, echo=FALSE}
+cols    <- c( "c1" = "Black", "c2" = "Blue", "c3" = "Green")
+(gg_patentsPerYear <- ggplot(data = our_data_summary, aes(x = Year, y = count)) +
+    geom_point(size = 0.9, alpha = 0.5, aes(colour = "c1")) +
+    geom_point(aes(x = 1976:2015, y = yearcounts, colour = "c2"), size = 0.9, alpha = 0.5) +
+    geom_point(data = lst.df, aes(x = year, y = count, colour = "c3"), size = 0.9, alpha = 0.5) +
+    theme_bw() +
+    scale_x_continuous(limits = c(1976,2015)) +
+    scale_color_manual(breaks = c("c1", "c2", "c3"),
+                       values = cols,
+                       labels = c("Our Data", "USPTO Summary", "List Files")) +
+    labs(title = "Comparing Patent Counts from different sources", y = "Number of Patents Published") +
+    theme(legend.title = element_blank(), legend.position = "bottom")
+)
+
+png("Figures/patentCounts.png")
+    gg_patentsPerYear
+dev.off()
+```
+
+```{r plot: compare differences, echo=FALSE, warning=FALSE}
+counts.df <- our_data_summary
+counts.df <- dplyr::full_join(counts.df, lst.df, by = c("Year" = "year"))
+names(counts.df) <- c("Year", "count.ours", "count.lst")
+counts.df$count.summary <- yearcounts
+
+counts.df <- mutate(counts.df, diff.lst = count.lst - count.ours, diff.summary = count.summary - count.ours)
+
+(gg_patentsDiff <- ggplot(data = counts.df, aes(x = Year, y = diff.lst)) + 
+    geom_point(aes(col = "c2")) + 
+    geom_point(aes(y = diff.summary, col = "c3")) +
+    theme_bw() +
+    labs(title = "Differences in number of patents parsed from other sources", y = "Patents - Patents Parsed") +
+    scale_color_manual(breaks = c("c1", "c2", "c3"),
+                       values = cols,
+                       labels = c("Our Data", "USPTO Summary", "List Files")) +
+    theme(legend.title = element_blank(), legend.position = "bottom")
+)
+
+png("Figures/patentsDiff.png")
+    gg_patentsDiff
+dev.off()
+```
+ 
+ * There are two large errors, one in 1976 for unknown reasons, one in 2015 due to the 2 weeks of data not being parsed, this is why the error exists between the summary statistics but not between the listed values. 
+ * With the exception of these two years our parsed data contains more patents than the reported sumamries. 
+ * In recent years (since 2008) the difference between these summaries and the parsed data increases substantially. In addition list files begin to describe larger numbers of patents which are not parsed up to ~2000. This is less than 1% of the data but a worrying trend. 
+```{r 2001, echo=FALSE}
+counts.2001 <- rename(counts.df, count.txt = count.ours) %>% filter(Year == 2001)
+counts.2001$count.sgml <- nrow(sgml2001)
+counts.2001 <- mutate(counts.2001, diff.sgml = count.txt - count.sgml)
+counts.2001
+
+sprintf("Patents in list file but not txt parse: %d", sum(!(lst.full$X2001 %in% txt2001$Patent_Raw)))
+sprintf("Patents in txt parse but not list file: %d", sum(!(txt2001$Patent_Raw %in% lst.full$X2001)))
+sprintf("Patents in sgml parse but not list file: %d", sum(!(sgml2001$Patent_Raw %in% lst.full$X2001)))
+```
+
+## Comparing Citation Files
+##################################################################################################################
+##################################################################################################################
+ 
+## Document where NA values are found
+##################################################################################################################
+##################################################################################################################
+
+```{r read and basic cleaning}
+sgml2001_cit <- read_csv("../DataFiles/SampleFiles/2001sgml/citation/2001.csv", 
+                         col_names = c("Patent", "Citation", "Date", ""),
+                         progress = FALSE, col_type = "cccc")
+
+# For some reason date is split between two columns, merge them
+index <- is.na(sgml2001_cit[,4])
+sgml2001_cit[!index,3] <- sgml2001_cit[!index, 4]
+sgml2001_cit[,4] <- NULL
+# Add one to date
+sgml2001_cit$Date <- as.character(as.numeric(sgml2001_cit$Date) + 1)
+
+sgml2001_cit <- unique(sgml2001_cit)
+sgml2001_cit$Date2 <- lubridate::ymd(sgml2001_cit$Date)
+```
+
+Sources of NA or missing values:
+ 
+ * File Parsing
+   - Errors in parsing the raw data causes missing entries rather than NA values, this effect is analysed in the next section.
+   - E.g. There are 2 weeks in 2015 where the uspto website didn't have the data availible (denied access error code). 
+ * Parsing, parsing date as an integer when reading the data creates a small number of NA values. 
+
+
+```{r save files, include=FALSE}
+write_csv(sgml2001, "../DataFiles/SampleFiles/patent/2001clean.csv")
+write_csv(txt2001, "../DataFiles/SampleFiles/patent/2001txtclean.csv")
+```
+
+
+# Conclusion
+
+ * Parsing Text is slightly more complete than parsing sgml. 
+    * We found using the 2001 data (which has both txt and sgml) that the text parsing has `r nrow(txt2001) - nrow(sgml2001)` more entries `r nrow(sgml2001)` vs. `r nrow(txt2001)`, and that all the entries in sgml are present in txt. 
+ * There are patent files parsed which are not listed by the uspto summary statistics.
+    * Differences in parsed vs summary statistics or lst files only appear after ~ 2008. 
+    * 1976 and 2015 are anomylous in terms of patent numbers parsed (2015 due to 2 weeks data un-obtainable, 1976 for unknown reasons)
+ * Cleaning steps required incluldes:
+    * Removing duplicated entries
+    * Removing extra digit at end of txt patent numbers
+    * Removing "filler" 0s in all patent patent numbers so that they match citation patent numbers and website. 

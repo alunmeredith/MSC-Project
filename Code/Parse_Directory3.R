@@ -1,23 +1,28 @@
 # This function cycles through a directory (year) and parses it acording to the above two functions and saves them 
-parse_directory <- function(year, prefer.cat = TRUE) {
+parse_directory <- function(year, write.dir = "../DataFiles/Processed",  prefer.cat = TRUE, doc_type = NULL) {
     require(stringr)
-    source("Code/Parse_Directory_statebased.R")
+    source("Parse_File_statebased.R")
+    
+    dirs <- paste0(write.dir, c("/patent","/citation"))
+    sapply(dirs, function(dir) if(!dir.exists(dir)) {dir.create(dir, recursive = TRUE)})
+    
     # Find the doc_type of datafile based on year
-    if (year %in% 2005:2016) {
-        doc_type <- "xml"
-    } else 
-    if (year %in% 2002:2004) {
-        doc_type <- "sgml"
-    } else 
-    if (year %in% 1976:2001) {
-        doc_type <- "text"
-    } else stop("year out of bounds")
+    if (is.null(doc_type)) {
+        if (year %in% 2005:2016) {
+            doc_type <- "xml"
+        } else 
+        if (year %in% 2002:2004) {
+            doc_type <- "sgml"
+        } else 
+        if (year %in% 1976:2001) {
+            doc_type <- "text"
+        } else stop("year out of bounds")
+    }
     
     ##### DEFINITIONS ############
-    # define read and write directories
-    read.dir <- paste0("DataFiles/Raw/", year)
-    write.dir <- paste0("DataFiles/Processed/")
-    
+    # define read directories
+    read.dir <- paste0("../DataFiles/Raw/", year)
+
     ##### LIST FILES #############
     # Read files in directory
     files <- list.files(read.dir)
@@ -32,7 +37,7 @@ parse_directory <- function(year, prefer.cat = TRUE) {
         lst.paths <- paste0(read.dir, "/", files.lst)
     }
     if (doc_type %in% c("xml", "sgml")) {
-        files <- str_subset(files, "\\.xml")
+        files <- str_subset(files, "(\\.xml)|(\\.sgml)")
     } else 
     if (doc_type == "text") {
         files <- str_subset(files, "\\.dat")
@@ -50,12 +55,13 @@ parse_directory <- function(year, prefer.cat = TRUE) {
     
     files.root <- str_replace(files, "\\..{3}", "") 
     file.paths <- paste0(read.dir, "/", files)
+    print(files)
     for (i in seq_along(files)) {
         print(sprintf("Processing: %s (%i/%i)", files.root[i], i, length(files)))
         t <- Sys.time()
         
-        out_pat <-  paste0(write.dir, "patent/" ,year, ".csv")
-        out_cit <- paste0(write.dir, "citation/", year, ".csv")
+        out_pat <-  paste0(write.dir, "/patent/" ,year, ".csv")
+        out_cit <- paste0(write.dir, "/citation/", year, ".csv")
         parse(input_path = file.paths[i], type = doc_type, output_path_patent = out_pat, output_path_citation = out_cit)
         
         print(paste("Time to process: ", Sys.time() - t))

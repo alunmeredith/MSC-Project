@@ -2,26 +2,33 @@
 title: "Reproducing Valverde"
 output: html_notebook
 ---
-```{r setup}
+```{r setup, include = FALSE}
 library(readr)
 library(lubridate)
 library(dplyr)
 library(ggplot2)
 library(ggthemes)
+library(poweRlaw)
+library(gridExtra)
 ```
+The aim of this script is to reproduce two of the plots in the the paper ["Topology and Evolution of Technology Innovation Networks"](http://arxiv.org/pdf/physics/0612030.pdf), which summarises the USPTO patent network. The first figure being reproduced looks at the number of patents over time, and the second is the in-degree distribution and fitting a extended power-law distribution to that. 
+
+<div style="width:900px; height=400px">
+![](Figures/ValverdeFigs.png)
+</div>
 
 The data being used for these plots in the cleaned concatonated patent data produced by the 'cleaned' script. We have extracted the year into a seperate feature as it is this which the data is summarised over. It contains a list of the patent numbers and date in which those patents were granted. 
 
 ```{r read data, echo=TRUE}
 # Read data
-data <- read_csv("../DataFiles/Cleaned/patent_cat.csv")
+data <- read_csv("../DataFiles/Cleaned/patent_cat.csv", progress = FALSE)
 data$Year <- year(data$Date2)
 str(data)
 ```
 ## Plot 1: Patents granted by year
 The first plot counts the number of patents granted by year, there is an inset which looks at this as a cumulative sum on a log-log scale.
 
-![Plot1 taken from valverde paper](Figures/Valverde1.png)
+
 
 In order to process the data into a tidy format processable by ggplot, we summarise it counting the number of entries (patents) for each year. There are a few outliers (`r nrow(data %>% group_by(Year) %>% summarise(count = n()) %>% filter(!(Year %in% 1976:2015)))`) so this is then filtered to only allow only patents within that range. 
 
@@ -31,14 +38,15 @@ year_counts <- data %>% group_by(Year) %>% summarise(count = n()) %>% filter(Yea
 ```
 
 ```{r plot1}
-gg <- ggplot(data = year_counts, aes(x = Year, y = count)) +
+gg1 <- ggplot(data = year_counts, aes(x = Year, y = count)) +
     geom_line() +
     geom_point(shape = 19) +
     scale_x_continuous(limits = c(1970,2020), minor_breaks = seq(1975, 2015, 10) ) +
     scale_y_continuous(limits = c(5e4, 3.5e5), breaks = seq(5e4, 35e4, 5e4)) +
     theme_bw()
-gg
+gg1
 ```
+
 ### Notes on plot1
 
 From our reproduction of the first figure we can make some observations:
@@ -60,32 +68,35 @@ year_counts$rel_year <- year_counts$Year - 1975
 ```
 
 ```{r plot1_inset}
-gg <- ggplot(data = year_counts, aes(x = rel_year, y = cum_count)) + 
+gg1b <- ggplot(data = year_counts, aes(x = rel_year, y = cum_count)) + 
     geom_point() +
     scale_x_log10() +
     scale_y_log10() + 
     theme_bw() +
     labs(x = "t", y = "N(t)")
-    #stat_smooth(method = "lm") +
-gg
 ```
 
-```{r plot1_inset linear regression, fig.height=4, fig.width=7}
+```{r plot1_inset linear regression, fig.height=4, fig.width=11}
 lm1 <- lm(log10(cum_count) ~ log10(rel_year), data = year_counts)
 
-gg + 
+gg1b.lm1 <- 
+    gg1b + 
     geom_abline(intercept = lm1$coefficients[1], slope = lm1$coefficients[2]) + 
     ggtitle("linear fit of all points") +
-    annotate(label = round(lm1$coefficients[2],2), x = 10, y = 4e5, geom = "text", size = 5)
+    annotate(label = round(lm1$coefficients[2],2), x = 10, y = 4e5, geom = "text", size = 5) +
+    annotation_logticks(sides = "tblr")
 
 t <- year_counts %>% filter(Year %in% 1985:2004)
 lm2 <- lm(log10(cum_count) ~ log10(rel_year), data = t)
-gg + 
+gg1b.lm2 <- 
+    gg1b + 
     geom_abline(intercept = lm2$coefficients[1], slope = lm2$coefficients[2]) + 
     ggtitle("linear fit over 1985:2014") +
-geom_point(data = t, col = "red") +
-    annotate(label = round(lm2$coefficients[2],2), x = 10, y = 4e5, geom = "text", size = 5)
+    geom_point(data = t, col = "red") +
+    annotate(label = round(lm2$coefficients[2],2), x = 10, y = 4e5, geom = "text", size = 5) +
+    annotation_logticks(sides = "tblr")
 
+grid.arrange(gg1b.lm1, gg1b.lm2, ncol=2)
 ```
 
 ### Notes on plot1 inset
@@ -98,53 +109,136 @@ geom_point(data = t, col = "red") +
 
 ```{r plot2 data summary}
 degree_distribution <- data %>% group_by(Year, Order) %>% summarise(count = n()) %>% filter(Year %in% c(1984, 1992, 2002, 2012))
+degree_distribution <- degree_distribution %>% 
+    group_by(Year) %>%
+    mutate(group_total = sum(count), freq = count / group_total)
 ```
 
-```{r}
-gg <- ggplot(data = degree_distribution, aes(x = Order, y = count, col = as.factor(Year))) +
+```{r raw plot}
+gg2a <- ggplot(data = degree_distribution, aes(x = Order, y = count, col = as.factor(Year))) +
     geom_point(size = 0.5) + 
-    scale_x_log10() +
-    scale_y_log10() +
-    theme_bw() 
-
-gg
+    scale_x_log10(
+        breaks = scales::trans_breaks("log10", function(x) 10^x),
+        labels = scales::trans_format("log10", scales::math_format(10^.x))
+    ) +
+    scale_y_log10(
+        breaks = scales::trans_breaks("log10", function(x) 10^x),
+    labels = scales::trans_format("log10", scales::math_format(10^.x))
+    ) +
+    annotation_logticks() +
+    theme_bw() +
+    theme(panel.grid.minor = element_blank()) +
+    theme(legend.position = "bottom")
 ```
 
+```{r normalised plot, fig.height=5, fig.width=10}
+gg2a2 <- ggplot(data = degree_distribution, aes(x = Order, y = freq, colour = as.factor(Year))) + 
+    geom_point(size = 0.5) + 
+    scale_x_log10(
+        breaks = scales::trans_breaks("log10", function(x) 10^x),
+        labels = scales::trans_format("log10", scales::math_format(10^.x))
+    ) +
+    scale_y_log10(
+        breaks = scales::trans_breaks("log10", function(x) 10^x),
+    labels = scales::trans_format("log10", scales::math_format(10^.x))
+    ) +
+    annotation_logticks() +
+    theme_bw() +
+    theme(panel.grid.minor = element_blank()) +
+    theme(legend.position = "bottom")
 
+grid.arrange(gg2a, gg2a2, ncol = 2)
+```
+The above shows a raw plot as shown in valverde and a normalised density plot where the count has been divided by the total. Typically however heavy tailed plots like this are done using histograms to mitigate the effects of very rare events in the heavy tail. 
+
+Below we create such a histogram, however there are artefacts due to the fact that order is discrete, as the bins change from containing one order to two etc. 
+
+```{r hist plot}
+test <- 1*10^seq(0,log10(4000), length.out = 100)
+degree_distribution$bin <- cut(degree_distribution$Order, 
+                               breaks = c(0,test),
+                               include.lowest = TRUE, 
+                               labels = test) %>% as.character() %>% as.numeric()
+hist <- degree_distribution %>% group_by(Year, bin) %>% summarise(count = sum(count))
+hist <- hist %>% group_by(Year) %>% mutate(group_total = sum(count), freq = count / group_total)
+
+hist2 <-dplyr::filter(hist, Year %in% c(1984,1992,2002,2012))
+ggplot(data = hist2, aes(x = bin, y = freq, group = Year, colour = as.factor(Year))) + 
+    geom_point() +
+    scale_y_log10() + 
+    scale_x_log10() +
+    theme_few() + 
+    annotation_logticks()
+```
 ### Notes on plot2
  
  * We see the effect where average number of citations is increasing continue into 2012
  * The big difference between our data and valverde's is that up to a peak of 7-9 the average citations is increasing whereas valerde' only decreases from a peak of 1 citation. 
+ * Our data has lower maximum counts and higher maximum order (1e3 rather than 1e2)
     * This could indicate that valverde doesn't include __foreign citations__ whereas we do. 
-    
-```{r}
-degree_distribution2012 <- degree_distribution %>% filter(Year == 2012)
-plfit = displ$new(degree_distribution2012$count)
-est = estimate_xmin(plfit)
-plfit$setXmin(est)
 
-fit = plot(plfit)
-fit2 =  lines(plfit, col = 2)
+## Fitting degree distribution
 
-gg + geom_curve(aes(x = fit2$x, y = fit2$y))
-```
+Using only 2002 as an example, we can use the "poweRlaw" package to fit different models to the in-degree distribution. This package is based on the Newman paper ["Power-law distributions in empirical data" (2009)](http://arxiv.org/pdf/0706.1062.pdf).
 
-```{r}
-pwrdist <- function(u,...) {
-    # u is vector of event counts, e.g. how many
-    # crimes was a given perpetrator charged for by the police
-    fx <- table(u)
-    i <- as.numeric(names(fx))
-    y <- rep(0,max(i))
-    y[i] <- fx
-    m0 <- glm(y~log(1:max(i)),family=quasipoisson())
-    print(summary(m0))
-    sub <- paste("s=",round(m0$coef[2],2),"lambda=",sum(u),"/",length(u))
-    plot(i,fx,log="xy",xlab="x",sub=sub,ylab="counts",...)
-    grid()
-    lines(1:max(i),(fitted(m0)),type="b")
-    return(m0)
+```{r mutate data}
+t2 <- degree_distribution %>% filter(Year == 2002) %>% group_by() %>% select(Order, count)
+vec <- NULL
+for(row in seq_len(nrow(t2))) {
+    vec <- c(vec, rep(as.numeric(t2[row,"Order"]), t2[row,"count"]))
 }
-pwrdist(degree_distribution2012$count)
 ```
 
+We build power law, lognormal, exponential, poisson and weibull models for the data using x+1 so as to allow the 0 data to be used. 
+```{r fit models}
+m_pl <- displ$new(vec + 1)
+est = estimate_pars(m_pl)
+est_pl <- estimate_xmin(m_pl)
+m_pl$setXmin(est_pl)
+print(paste("Power Law xmin and parameters: "  , m_pl$getXmin(), m_pl$getPars()))
+
+m_ln <- dislnorm$new(vec + 1)
+est = estimate_pars(m_ln)
+est_ln <- estimate_xmin(m_ln)
+m_ln$setXmin(est_ln)
+print(paste("Log-normal xmin and parameters: "  , m_ln$getXmin(), m_ln$getPars()))
+
+m_exp <- disexp$new(vec + 1)
+est = estimate_pars(m_exp)
+est_exp <- estimate_xmin(m_exp)
+m_exp$setXmin(est_exp)
+print(paste("Exponential xmin and parameters: "  , m_exp$getXmin(), m_exp$getPars()))
+
+m_pois <- dispois$new(vec + 1)
+est = estimate_pars(m_pois)
+est_pois <- estimate_xmin(m_pois)
+m_pois$setXmin(est_pois)
+print(paste("Poisson xmin and parameters: "  , m_pois$getXmin(), m_pois$getPars()))
+
+m_wb <- conweibull$new(vec + 1)
+est = estimate_pars(m_wb)
+est_wb <- estimate_xmin(m_wb)
+m_wb$setXmin(est_wb)
+print(paste("Weibull xmin and parameters: "  , m_wb$getXmin(), m_wb$getPars()))
+```
+
+
+```{r}
+png("indegree_models.png")
+    plot(m_pl, cex = .5)
+    lines(m_pl, col=rgb(0,1,0,alpha=0.6) , lwd = 2) # green
+    lines(m_ln, col=rgb(1,0,0,alpha=0.6) , lwd = 2) # blue
+    lines(m_exp, col=rgb(0,0,1,alpha=0.6) , lwd = 2) # red
+    lines(m_pois, col=rgb(0.5,0.5,0,alpha=0.6) , lwd = 2) # green-blue
+    lines(m_wb, col=rgb(0,0.5,0.5,alpha=0.6) , lwd = 2) # dirty yellow
+dev.off()
+```
+
+```{r}
+bs_pl = bootstrap_p(m_pl, no_of_sims=50, threads=4)
+bs_ln = bootstrap_p(m_ln, no_of_sims=50, threads=4)
+```
+
+```{r save}
+save(m_exp, m_ln, m_pois, m_wb, m_m, m_pl, file = "indegree_models.RData")
+```
