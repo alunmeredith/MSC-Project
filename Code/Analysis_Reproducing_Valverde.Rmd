@@ -1,6 +1,8 @@
 ---
 title: "Reproducing Valverde"
-output: html_notebook
+output:
+  html_document: default
+  html_notebook: default
 ---
 ```{r setup, include = FALSE}
 library(readr)
@@ -10,6 +12,8 @@ library(ggplot2)
 library(ggthemes)
 library(poweRlaw)
 library(gridExtra)
+knitr::opts_chunk$set(results = 'hold')
+knitr::opts_chunk$set(message = FALSE)
 ```
 The aim of this script is to reproduce two of the plots in the the paper ["Topology and Evolution of Technology Innovation Networks"](http://arxiv.org/pdf/physics/0612030.pdf), which summarises the USPTO patent network. The first figure being reproduced looks at the number of patents over time, and the second is the in-degree distribution and fitting a extended power-law distribution to that. 
 
@@ -38,13 +42,13 @@ year_counts <- data %>% group_by(Year) %>% summarise(count = n()) %>% filter(Yea
 ```
 
 ```{r plot1}
-gg1 <- ggplot(data = year_counts, aes(x = Year, y = count)) +
+(gg1 <- ggplot(data = year_counts, aes(x = Year, y = count)) +
     geom_line() +
     geom_point(shape = 19) +
     scale_x_continuous(limits = c(1970,2020), minor_breaks = seq(1975, 2015, 10) ) +
     scale_y_continuous(limits = c(5e4, 3.5e5), breaks = seq(5e4, 35e4, 5e4)) +
     theme_bw()
-gg1
+ )
 ```
 
 ### Notes on plot1
@@ -114,44 +118,92 @@ degree_distribution <- degree_distribution %>%
     mutate(group_total = sum(count), freq = count / group_total)
 ```
 
+
+```{r lms}
+ 
+lm_func <- function(x, y, year, data = degree_distribution, xmin = 20, xmax = 200) {
+    dat <- data %>% filter(Year == year, Order > xmin, Order < xmax)
+    dat$Order[dat$Order == 0] <- NA
+    
+    model <- switch(y, 
+           "count" = lm(data = dat, formula = log10(count) ~ log10(Order)),
+           "freq" = lm(data = dat, formula = log10(freq) ~ log10(Order)))
+    list(func = model$coefficients[2] * log10(x) + model$coefficients[1], coef = model$coefficients)
+}
+```
+
 ```{r raw plot}
 gg2a <- ggplot(data = degree_distribution, aes(x = Order, y = count, col = as.factor(Year))) +
-    geom_point(size = 0.5) + 
+    geom_line(size = 0.5) + 
     scale_x_log10(
         breaks = scales::trans_breaks("log10", function(x) 10^x),
         labels = scales::trans_format("log10", scales::math_format(10^.x))
     ) +
     scale_y_log10(
         breaks = scales::trans_breaks("log10", function(x) 10^x),
-    labels = scales::trans_format("log10", scales::math_format(10^.x))
+    labels = scales::trans_format("log10", scales::math_format(10^.x)),
+    limits = c(1, 5e4)
     ) +
     annotation_logticks() +
     theme_bw() +
     theme(panel.grid.minor = element_blank()) +
-    theme(legend.position = "bottom")
+    theme(legend.position = "bottom") +
+    stat_function(fun = function(x) lm_func(x, y = "count", year = 1984, xmax = 50)$func, 
+                  geom = 'line', colour = 'orange', linetype = "dashed") +
+    annotate(label = round(lm_func(x = NA, y = "count", year = 1984, xmax = 50)$coef[1],2), 
+             x = 10, y = 1e1, geom = "text", size = 3) +
+    stat_function(fun = function(x) lm_func(x, y = "count", year = 1992)$func, 
+                  geom = 'line', colour = 'green', linetype = "dashed") +
+    annotate(label = round(lm_func(x = NA, y = "count", year = 1992)$coef[1],2), 
+             x = 10, y = 3e1, geom = "text", size = 3) +
+    stat_function(fun = function(x) lm_func(x, y = "count", year = 2002)$func, 
+                  geom = 'line', colour = 'blue', linetype = "dashed") +
+    annotate(label = round(lm_func(x = NA, y = "count", year = 2002)$coef[1],2), 
+             x = 10, y = 1e2, geom = "text", size = 3) +
+    stat_function(fun = function(x) lm_func(x, y = "count", year = 2012)$func, 
+                  geom = 'line', colour = 'purple', linetype = "dashed") +
+    annotate(label = round(lm_func(x = NA, y = "count", year = 2012)$coef[1],2), 
+             x = 10, y = 3e2, geom = "text", size = 3)
 ```
 
-```{r normalised plot, fig.height=5, fig.width=10}
+
+```{r normalised plot, fig.height=5, fig.width=10, message=FALSE}
 gg2a2 <- ggplot(data = degree_distribution, aes(x = Order, y = freq, colour = as.factor(Year))) + 
-    geom_point(size = 0.5) + 
+    geom_line(size = 0.5) + 
     scale_x_log10(
         breaks = scales::trans_breaks("log10", function(x) 10^x),
         labels = scales::trans_format("log10", scales::math_format(10^.x))
     ) +
     scale_y_log10(
         breaks = scales::trans_breaks("log10", function(x) 10^x),
-    labels = scales::trans_format("log10", scales::math_format(10^.x))
+    labels = scales::trans_format("log10", scales::math_format(10^.x)),
+        limits = c(5e-6, 1e0)
     ) +
     annotation_logticks() +
     theme_bw() +
     theme(panel.grid.minor = element_blank()) +
-    theme(legend.position = "bottom")
-
+    theme(legend.position = "bottom") +
+    stat_function(fun = function(x) lm_func(x, y = "freq", year = 1984, xmax = 50)$func, 
+                  geom = 'line', colour = 'orange', linetype = "dashed") +
+    annotate(label = round(lm_func(x = NA, y = "freq", year = 1984, xmax = 50)$coef[1],2), 
+             x = 10, y = 3e-3, geom = "text", size = 3) +
+    stat_function(fun = function(x) lm_func(x, y = "freq", year = 1992)$func, 
+                  geom = 'line', colour = 'green', linetype = "dashed") +
+    annotate(label = round(lm_func(x = NA, y = "freq", year = 1992)$coef[1],2), 
+             x = 10, y = 1e-3, geom = "text", size = 3) +
+    stat_function(fun = function(x) lm_func(x, y = "freq", year = 2002)$func, 
+                  geom = 'line', colour = 'blue', linetype = "dashed") +
+    annotate(label = round(lm_func(x = NA, y = "freq", year = 2002)$coef[1],2), 
+             x = 10, y = 3e-4, geom = "text", size = 3) +
+    stat_function(fun = function(x) lm_func(x, y = "freq", year = 2012)$func, 
+                  geom = 'line', colour = 'purple', linetype = "dashed") +
+    annotate(label = round(lm_func(x = NA, y = "freq", year = 2012)$coef[1],2), 
+             x = 10, y = 1e-4, geom = "text", size = 3)
 grid.arrange(gg2a, gg2a2, ncol = 2)
 ```
-The above shows a raw plot as shown in valverde and a normalised density plot where the count has been divided by the total. Typically however heavy tailed plots like this are done using histograms to mitigate the effects of very rare events in the heavy tail. 
+The above shows a raw plot as shown in valverde and a normalised density plot where the count has been divided by the total. We have judged the section of linear power law distribution by eye and fitted a linear model to get the gradient. In this case in the range of 20-200 with the exception of 1984 which uses 50 as its maxmimum order. We can see how a linear model fits well in this region and that values of gradient are higher than that produced by valverde, due to the presumed difference of including foreign patents. 
 
-Below we create such a histogram, however there are artefacts due to the fact that order is discrete, as the bins change from containing one order to two etc. 
+Typically however heavy tailed plots like above are done using histograms to mitigate the effects of very rare events in the heavy tail. Below we create such a histogram, however there are artefacts due to the fact that order is discrete, as the bins change from containing one order to two etc. 
 
 ```{r hist plot}
 test <- 1*10^seq(0,log10(4000), length.out = 100)
@@ -163,7 +215,7 @@ hist <- degree_distribution %>% group_by(Year, bin) %>% summarise(count = sum(co
 hist <- hist %>% group_by(Year) %>% mutate(group_total = sum(count), freq = count / group_total)
 
 hist2 <-dplyr::filter(hist, Year %in% c(1984,1992,2002,2012))
-ggplot(data = hist2, aes(x = bin, y = freq, group = Year, colour = as.factor(Year))) + 
+gg2a3 <- ggplot(data = hist2, aes(x = bin, y = freq, group = Year, colour = as.factor(Year))) + 
     geom_point() +
     scale_y_log10() + 
     scale_x_log10() +
@@ -171,7 +223,8 @@ ggplot(data = hist2, aes(x = bin, y = freq, group = Year, colour = as.factor(Yea
     annotation_logticks()
 ```
 ### Notes on plot2
- 
+
+ * In the above histogram plot we can see an apparent "knee" in the linear fit, especially visible in the 2002, and 2012 years. 
  * We see the effect where average number of citations is increasing continue into 2012
  * The big difference between our data and valverde's is that up to a peak of 7-9 the average citations is increasing whereas valerde' only decreases from a peak of 1 citation. 
  * Our data has lower maximum counts and higher maximum order (1e3 rather than 1e2)
@@ -179,66 +232,104 @@ ggplot(data = hist2, aes(x = bin, y = freq, group = Year, colour = as.factor(Yea
 
 ## Fitting degree distribution
 
-Using only 2002 as an example, we can use the "poweRlaw" package to fit different models to the in-degree distribution. This package is based on the Newman paper ["Power-law distributions in empirical data" (2009)](http://arxiv.org/pdf/0706.1062.pdf).
+Using only 2002 as an example, we can use the "poweRlaw" package to fit different models to the in-degree distribution. This package is based on the Newman paper ["Power-law distributions in empirical data" (2009)](http://arxiv.org/pdf/0706.1062.pdf). The purpose of that paper and this section is to empirically deduce the underlying models without assuming it is a pwoer law. 
 
 ```{r mutate data}
+# Filter 2002 and build into a tall format which poweRlaw interacts with. 
 t2 <- degree_distribution %>% filter(Year == 2002) %>% group_by() %>% select(Order, count)
 vec <- NULL
 for(row in seq_len(nrow(t2))) {
     vec <- c(vec, rep(as.numeric(t2[row,"Order"]), t2[row,"count"]))
 }
+# Remove zeros because log scale can't handle it. 
+vec <- vec[vec != 0] 
 ```
 
-We build power law, lognormal, exponential, poisson and weibull models for the data using x+1 so as to allow the 0 data to be used. 
+poweRlaw deals with 4 types of discrete model: power law, lognormal, exponential and poisson. We can use poweRlaw to fit these models to the data, estimating their parameters and minimum value of x for which they apply. 
 ```{r fit models}
-m_pl <- displ$new(vec + 1)
+m_pl <- displ$new(vec)
 est = estimate_pars(m_pl)
 est_pl <- estimate_xmin(m_pl)
 m_pl$setXmin(est_pl)
-print(paste("Power Law xmin and parameters: "  , m_pl$getXmin(), m_pl$getPars()))
+print(cat("Power Law \n xmin: " , m_pl$getXmin(), "\n Parameters:", m_pl$getPars(), "\n Goodness of Fit: ", round(est_pl$gof,2)))
 
-m_ln <- dislnorm$new(vec + 1)
+m_ln <- dislnorm$new(vec)
 est = estimate_pars(m_ln)
 est_ln <- estimate_xmin(m_ln)
 m_ln$setXmin(est_ln)
-print(paste("Log-normal xmin and parameters: "  , m_ln$getXmin(), m_ln$getPars()))
+print(cat("Log-normal \n xmin: "  , m_ln$getXmin(), "\n Parameters:", m_ln$getPars(), "\n Goodness of Fit: ", round(est_ln$gof, 2)))
 
-m_exp <- disexp$new(vec + 1)
+m_exp <- disexp$new(vec)
 est = estimate_pars(m_exp)
 est_exp <- estimate_xmin(m_exp)
 m_exp$setXmin(est_exp)
-print(paste("Exponential xmin and parameters: "  , m_exp$getXmin(), m_exp$getPars()))
+print(cat("Exponential \n xmin: "  , m_exp$getXmin(), "\n Parameters:", m_exp$getPars(), "\n Goodness of Fit: ", round(est_exp$gof, 2)))
 
-m_pois <- dispois$new(vec + 1)
+m_pois <- dispois$new(vec)
 est = estimate_pars(m_pois)
 est_pois <- estimate_xmin(m_pois)
 m_pois$setXmin(est_pois)
-print(paste("Poisson xmin and parameters: "  , m_pois$getXmin(), m_pois$getPars()))
-
-m_wb <- conweibull$new(vec + 1)
-est = estimate_pars(m_wb)
-est_wb <- estimate_xmin(m_wb)
-m_wb$setXmin(est_wb)
-print(paste("Weibull xmin and parameters: "  , m_wb$getXmin(), m_wb$getPars()))
+print(cat("Poisson \n xmin: "  , m_pois$getXmin(), "\n Parameters:", m_pois$getPars(), "\n Goodness of Fit: ", round(est_pois$gof, 2)))
 ```
 
 
 ```{r}
-png("indegree_models.png")
-    plot(m_pl, cex = .5)
-    lines(m_pl, col=rgb(0,1,0,alpha=0.6) , lwd = 2) # green
-    lines(m_ln, col=rgb(1,0,0,alpha=0.6) , lwd = 2) # blue
-    lines(m_exp, col=rgb(0,0,1,alpha=0.6) , lwd = 2) # red
-    lines(m_pois, col=rgb(0.5,0.5,0,alpha=0.6) , lwd = 2) # green-blue
-    lines(m_wb, col=rgb(0,0.5,0.5,alpha=0.6) , lwd = 2) # dirty yellow
+par(mfrow = c(2,2))
+par(cex = .5)
+par(lwd = 2)
+    plot(m_pl, main = "power-law")
+    lines(m_pl, col="green") # green
+    
+    plot(m_ln, main = "log-normal")
+    lines(m_ln, col = "red") # red
+    
+    plot(m_exp, main = "exponential")
+    lines(m_exp, col="blue") # blue
+    
+    plot(m_pois, main = "poisson")
+    lines(m_pois, col="orange") # grey
+```
+
+The above plot shows the CDF with lines of best fit for each of the distributions, as we can see the Exponential ans poisson distributions only fit to very small low frequency sections of the tail with poor goodness of fit, it is quite easy to discount these as possible underlying mechanisms. The power law and log-normal however have very similar goodness of fits and importantly fit best the centre bulk of the data before extreme effects occur. 
+
+Using a bootstrapping method
+```{r, eval=FALSE}
+bs_pl = bootstrap_p(m_pl, no_of_sims=100, threads=4)
+bs_ln = bootstrap_p(m_ln, no_of_sims=100, threads=4)
+```
+```{r}
+if (!exists(c("bs_pl", "bs_ln"))) load("indegree_bootstrapping.RData")
+print(paste("Log-normal p value:", bs_ln$p))
+print(paste("Power-law p value:", bs_pl$p))
+```
+
+```{r save, echo=FALSE, message=FALSE}
+png("Figures/gg1"); gg1; dev.off()
+png("Figures/gg1b"); gg1b; dev.off()
+png("Figures/gg1blm"); grid.arrange(gg1b.lm1, gg1b.lm2, ncol=2); dev.off()
+png("Figures/gg2a"); gg2a; dev.off()
+png("Figures/gg2a2"); gg2a2; dev.off()
+png("Figures/gg2a3"); gg2a3; dev.off()
+
+png("Figures/indegree_models.png")
+
+par(mfrow = c(2,2))
+par(cex = .5)
+par(lwd = 2)
+    plot(m_pl, main = "power-law")
+    lines(m_pl, col="green") # green
+    
+    plot(m_ln, main = "log-normal")
+    lines(m_ln, col = "red") # red
+    
+    plot(m_exp, main = "exponential")
+    lines(m_exp, col="blue") # blue
+    
+    plot(m_pois, main = "poisson")
+    lines(m_pois, col="orange") # grey
 dev.off()
-```
-
-```{r}
-bs_pl = bootstrap_p(m_pl, no_of_sims=50, threads=4)
-bs_ln = bootstrap_p(m_ln, no_of_sims=50, threads=4)
-```
-
-```{r save}
-save(m_exp, m_ln, m_pois, m_wb, m_m, m_pl, file = "indegree_models.RData")
+    
+save(m_exp, m_ln, m_pois, m_pl, file = "indegree_models.RData")
+save(est_exp, est_ln, est_pois, est_pl, file = "indegree_estimates.RData")
+save(bs_pl, bs_ln, file = "indegree_bootstrapping.RData")
 ```
