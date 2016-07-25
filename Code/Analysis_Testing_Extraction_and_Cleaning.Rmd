@@ -146,7 +146,7 @@ lst.df <- data.frame(year = yrs, count = npats)
 
 ```{r plot: compare overall, echo=FALSE}
 cols    <- c( "c1" = "Black", "c2" = "Blue", "c3" = "Green")
-(gg_patentsPerYear <- ggplot(data = our_data_summary, aes(x = Year, y = count)) +
+gg_patentsPerYear <- ggplot(data = our_data_summary, aes(x = Year, y = count)) +
     geom_point(size = 0.9, alpha = 0.5, aes(colour = "c1")) +
     geom_point(aes(x = 1976:2015, y = yearcounts, colour = "c2"), size = 0.9, alpha = 0.5) +
     geom_point(data = lst.df, aes(x = year, y = count, colour = "c3"), size = 0.9, alpha = 0.5) +
@@ -157,11 +157,7 @@ cols    <- c( "c1" = "Black", "c2" = "Blue", "c3" = "Green")
                        labels = c("Our Data", "USPTO Summary", "List Files")) +
     labs(title = "Comparing Patent Counts from different sources", y = "Number of Patents Published") +
     theme(legend.title = element_blank(), legend.position = "bottom")
-)
-
-png("Figures/patentCounts.png")
-    gg_patentsPerYear
-dev.off()
+gg_patentsPerYear
 ```
 
 ```{r plot: compare differences, echo=FALSE, warning=FALSE}
@@ -172,7 +168,7 @@ counts.df$count.summary <- yearcounts
 
 counts.df <- mutate(counts.df, diff.lst = count.lst - count.ours, diff.summary = count.summary - count.ours)
 
-(gg_patentsDiff <- ggplot(data = counts.df, aes(x = Year, y = diff.lst)) + 
+gg_patentsDiff <- ggplot(data = counts.df, aes(x = Year, y = diff.lst)) + 
     geom_point(aes(col = "c2")) + 
     geom_point(aes(y = diff.summary, col = "c3")) +
     theme_bw() +
@@ -181,11 +177,7 @@ counts.df <- mutate(counts.df, diff.lst = count.lst - count.ours, diff.summary =
                        values = cols,
                        labels = c("Our Data", "USPTO Summary", "List Files")) +
     theme(legend.title = element_blank(), legend.position = "bottom")
-)
-
-png("Figures/patentsDiff.png")
-    gg_patentsDiff
-dev.off()
+gg_patentsDiff
 ```
  
  * There are two large errors, one in 1976 for unknown reasons, one in 2015 due to the 2 weeks of data not being parsed, this is why the error exists between the summary statistics but not between the listed values. 
@@ -237,13 +229,15 @@ Sources of NA or missing values:
 ```{r save files, include=FALSE}
 write_csv(sgml2001, "../DataFiles/SampleFiles/patent/2001clean.csv")
 write_csv(txt2001, "../DataFiles/SampleFiles/patent/2001txtclean.csv")
+png("Figures/patentsDiff.png"); gg_patentsDiff; dev.off()
+png("Figures/patentCounts.png"); gg_patentsPerYear; dev.off()
 ```
 
 
 # Conclusion
 
  * Parsing Text is slightly more complete than parsing sgml. 
-    * We found using the 2001 data (which has both txt and sgml) that the text parsing has `r nrow(txt2001) - nrow(sgml2001)` more entries `r nrow(sgml2001)` vs. `r nrow(txt2001)`, and that all the entries in sgml are present in txt. 
+    * We found using the 2001 data (which has both txt and sgml) that the text parsing has more entries `r nrow(sgml2001)` vs. `r nrow(txt2001)`, and that all the entries in sgml are present in txt. 
  * There are patent files parsed which are not listed by the uspto summary statistics.
     * Differences in parsed vs summary statistics or lst files only appear after ~ 2008. 
     * 1976 and 2015 are anomylous in terms of patent numbers parsed (2015 due to 2 weeks data un-obtainable, 1976 for unknown reasons)
