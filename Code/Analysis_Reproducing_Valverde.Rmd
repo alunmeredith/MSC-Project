@@ -304,12 +304,12 @@ print(paste("Power-law p value:", bs_pl$p))
 ```
 
 ```{r save, echo=FALSE, message=FALSE}
-png("Figures/gg1"); gg1; dev.off()
-png("Figures/gg1b"); gg1b; dev.off()
-png("Figures/gg1blm"); grid.arrange(gg1b.lm1, gg1b.lm2, ncol=2); dev.off()
-png("Figures/gg2a"); gg2a; dev.off()
-png("Figures/gg2a2"); gg2a2; dev.off()
-png("Figures/gg2a3"); gg2a3; dev.off()
+png("Figures/gg1.png"); gg1; dev.off()
+png("Figures/gg1b.png"); gg1b; dev.off()
+png("Figures/gg1blm.png"); grid.arrange(gg1b.lm1, gg1b.lm2, ncol=2); dev.off()
+png("Figures/gg2a.png"); gg2a; dev.off()
+png("Figures/gg2a2.png"); gg2a2; dev.off()
+png("Figures/gg2a3.png"); gg2a3; dev.off()
 
 png("Figures/indegree_models.png")
 
