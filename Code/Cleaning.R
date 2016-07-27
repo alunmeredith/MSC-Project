@@ -52,7 +52,6 @@ rm(list = ls())
 # Clean Citation Files
 citation.files <- list.files("../DataFiles/Processed/citation", full.names = T)
 for (file in citation.files) {
-    rm(df)
     gc()
     print(file)
     # Add Column Names
@@ -78,5 +77,6 @@ for (file in citation.files) {
     # Write to file
     file.path <- sub("Processed", "Cleaned", file)
     write_csv(df, file.path)
+    rm(df)
 }
 

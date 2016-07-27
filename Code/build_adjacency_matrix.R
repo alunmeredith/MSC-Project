@@ -1,49 +1,39 @@
-# Populate a sparse matrix
-library(slam)
-require(readr)
 library(data.table)
-# Sparse matrices are stored in triplet format [i,j,value] (values are logical)
+library(dplyr)
+library(readr)
 
-# INDEX ###################################################################################################
-# To create this format we must create a vector of patents from which i/j are obtained. 
-# Parse each file and find unique patents
-# NB: at this point have to decide if we want to store only the patents which have been parsed or all cited patents
-#     to make it smaller, do the former. The negative of this is to analyse involving those discarded patents we 
-#     must 
+# Load vector of patents into memory, this will be indexed against to produce adjacency matrix. 
+# Using data.table package to produce a vector key for binary search. 
 
-index <- NULL
-# List dirs to extract from
-dirs <- c("DataFiles/Processed/2015/patent", "DataFiles/Processed/2014/patent", "DataFiles/Processed/2012/patent")
-for (dir in dirs) {
-    files <- list.files(dir, full.names = T)
-    for (file in files) {
-        data <- read_csv(file)
-        index <- unique(c(index, data$patent_no))
+pat_index <- read_csv("../DataFiles/Cleaned/patent_cat.csv")
+pat_index <- data.table(pat_index, key = c("Patent", "Date"))
+
+find_adjacency <- function(Pat_no, index = pat_index) {
+    pat <- index[.(Pat_no), nomatch = 0]
+    if (nrow(pat) > 0) {
+        return(c(as.character(pat$Patent), as.character(Pat_no)))
+    }
+    else return(c(NA,as.character(Pat_no)))
+}
+
+
+adjacency_parse_file <- function(file = "../DataFiles/Cleaned/citation/1996.csv", write.file = "../DataFiles/Cleaned/adjacency.csv") {
+    cursor = 0
+    pb <- txtProgressBar(style = 3)
+    while (!is.null(cit_df <- read_csv(file, skip = cursor, n_max = 10000, col_types = "ccdD", 
+                                       col_names = c("Patent", "Citation", "Date", "Date2")))) {
+        setTxtProgressBar(pb, cursor)
+        adjacency <- lapply(cit_df$Citation, find_adjacency) %>% t 
+        adjacency <- as.data.frame(matrix(unlist(adjacency), ncol = 2, byrow = TRUE))
+        colnames(adjacency) <- c("Patent", "Citation")
+        print(head(adjacency,3))
+        write_csv(adjacency, write.file, append = TRUE)
+        cursor <- cursor + 10000
     }
 }
 
-write(index, "DataFiles/Processed/index.txt")
-
-t <- Sys.time()
-# VALUES ###################################################################################################
-# To find the values for the sparse matrix we must match the index with cited patents in the citations files
-# TODO: store values as the date citation was made. 
-index <- scan(file = "DataFiles/Processed/index.txt", what = "character")
-#index <- as.data.table(index)
-interactions <- NULL
-# Cycle through each file in directories given
-dirs <- c("DataFiles/Processed/2015/citations", "DataFiles/Processed/2014/citations", "DataFiles/Processed/2012/citations")
-for (dir in dirs) {
-    files <- list.files(dir, full.names = T)
-    for (file in files) {
-        data <- read_csv(file)
-        matches <- chmatch(index, data$patent_no) # Returns NA or position along data$patent_no where match occurs
-        i <- which(!is.na(chmatch(index, data$patent_no)))  # pointer along index of patent
-        x <- data$parent[na.omit(chmatch(index, data$patent_no))] -> x # values of parent which match index (j)
-        j <- chmatch(x, index) # pointer along index of parent
-        interactions <- rbind(interactions, data.frame(patent = i, parent = j))
-    }
+file.list <- list.files("../DataFiles/Cleaned/citation/", full.names = TRUE)
+for(file in file.list) {
+    print(file)
+    adjacency_parse_file(file)
 }
-Sys.time() - t
-# Build sparse matrix
-adjacency_matrix <- Matrix::sparseMatrix(interactions$i, interactions$j)
