@@ -167,7 +167,7 @@ gg2a <- ggplot(data = degree_distribution, aes(x = Order, y = count, col = as.fa
 ```
 
 
-```{r normalised plot, fig.height=5, fig.width=10, message=FALSE}
+```{r normalised plot, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
 gg2a2 <- ggplot(data = degree_distribution, aes(x = Order, y = freq, colour = as.factor(Year))) + 
     geom_line(size = 0.5) + 
     scale_x_log10(
@@ -221,6 +221,7 @@ gg2a3 <- ggplot(data = hist2, aes(x = bin, y = freq, group = Year, colour = as.f
     scale_x_log10() +
     theme_few() + 
     annotation_logticks()
+gg2a3
 ```
 ### Notes on plot2
 
@@ -292,9 +293,27 @@ par(lwd = 2)
 
 The above plot shows the CDF with lines of best fit for each of the distributions, as we can see the Exponential ans poisson distributions only fit to very small low frequency sections of the tail with poor goodness of fit, it is quite easy to discount these as possible underlying mechanisms. The power law and log-normal however have very similar goodness of fits and importantly fit best the centre bulk of the data before extreme effects occur. 
 
-Using a bootstrapping method
-```{r, eval=FALSE}
-bs_pl = bootstrap_p(m_pl, no_of_sims=100, threads=4)
+Using a bootstrapping method to obtain a p value for distributions
+
+- The paper says that for a given accuracy in the p value the number of simulations required scales $~ \frac{1}{4}\eta^{-1/2}$.
+- The paper also approximates a p value cut off of about 0.1 to disregard the hypothesis of the tested distribution. 
+- To get an accuracy of 0.01 we need 2500 simulations, this is would take far too long (~6 hours for power law, and ~ 27hours for lognormal)
+- To get around this we will take a sample of the data (currently we have n = `r length(vec)` elements) and the paper shows that n > 1000 seems to accurately differentiate. We will use n = 10,000 to be confident of this. 
+```{r, eval=FALSE, warning=FALSE}
+set.seed(1)
+sample_vec <- sample(vec, 1e5)
+m_pl_sample <- displ$new(sample_vec)
+est_pl_sample <- estimate_xmin(m_pl_sample)
+m_pl_sample$setXmin(est_pl_sample)
+bs_pl_sample = bootstrap_p(m_pl_sample, no_of_sims=2500, threads=4)
+
+m_pl <- displ$new(vec)
+est_pl <- estimate_xmin(m_pl)
+m_pl$setXmin(est_pl)
+bs_pl = bootstrap_p(m_pl, no_of_sims=2500, threads=4)
+
+
+m_ln_sample <- m_pl <- displ$new(sample_vec)
 bs_ln = bootstrap_p(m_ln, no_of_sims=100, threads=4)
 ```
 ```{r}
@@ -303,7 +322,7 @@ print(paste("Log-normal p value:", bs_ln$p))
 print(paste("Power-law p value:", bs_pl$p))
 ```
 
-```{r save, echo=FALSE, message=FALSE}
+```{r save, echo=FALSE, message=FALSE, warning=FALSE}
 png("Figures/gg1.png"); gg1; dev.off()
 png("Figures/gg1b.png"); gg1b; dev.off()
 png("Figures/gg1blm.png"); grid.arrange(gg1b.lm1, gg1b.lm2, ncol=2); dev.off()
