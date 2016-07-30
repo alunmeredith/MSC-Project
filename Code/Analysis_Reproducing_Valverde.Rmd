@@ -1,8 +1,8 @@
 ---
 title: "Reproducing Valverde"
 output:
-  html_document: default
   html_notebook: default
+  html_document: default
 ---
 ```{r setup, include = FALSE}
 library(readr)
@@ -215,12 +215,13 @@ hist <- degree_distribution %>% group_by(Year, bin) %>% summarise(count = sum(co
 hist <- hist %>% group_by(Year) %>% mutate(group_total = sum(count), freq = count / group_total)
 
 hist2 <-dplyr::filter(hist, Year %in% c(1984,1992,2002,2012))
-gg2a3 <- ggplot(data = hist2, aes(x = bin, y = freq, group = Year, colour = as.factor(Year))) + 
+(gg2a3 <- ggplot(data = hist2, aes(x = bin, y = freq, group = Year, colour = as.factor(Year))) + 
     geom_point() +
     scale_y_log10() + 
     scale_x_log10() +
     theme_few() + 
     annotation_logticks()
+)
 ```
 ### Notes on plot2
 
@@ -294,9 +295,10 @@ The above plot shows the CDF with lines of best fit for each of the distribution
 
 Using a bootstrapping method
 ```{r, eval=FALSE}
-bs_pl = bootstrap_p(m_pl, no_of_sims=100, threads=4)
-bs_ln = bootstrap_p(m_ln, no_of_sims=100, threads=4)
+bs_pl = bootstrap_p(m_pl, no_of_sims=2500, threads=8)
+bs_ln = bootstrap_p(m_ln, no_of_sims=2500, threads=8)
 ```
+
 ```{r}
 if (!exists(c("bs_pl", "bs_ln"))) load("indegree_bootstrapping.RData")
 print(paste("Log-normal p value:", bs_ln$p))
@@ -328,7 +330,8 @@ par(lwd = 2)
     plot(m_pois, main = "poisson")
     lines(m_pois, col="orange") # grey
 dev.off()
-    
+
+save(year_counts, file = "year_counts.RData")
 save(m_exp, m_ln, m_pois, m_pl, file = "indegree_models.RData")
 save(est_exp, est_ln, est_pois, est_pl, file = "indegree_estimates.RData")
 save(bs_pl, bs_ln, file = "indegree_bootstrapping.RData")

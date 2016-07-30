@@ -5,7 +5,7 @@ parse_directory <- function(year, write.dir = "../DataFiles/Processed",  prefer.
     
     dirs <- paste0(write.dir, c("/patent","/citation"))
     sapply(dirs, function(dir) if(!dir.exists(dir)) {dir.create(dir, recursive = TRUE)})
-    
+
     # Find the doc_type of datafile based on year
     if (is.null(doc_type)) {
         if (year %in% 2005:2016) {

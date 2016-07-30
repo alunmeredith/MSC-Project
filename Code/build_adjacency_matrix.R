@@ -19,10 +19,9 @@ find_adjacency <- function(Pat_no, index = pat_index) {
 
 adjacency_parse_file <- function(file = "../DataFiles/Cleaned/citation/1996.csv", write.file = "../DataFiles/Cleaned/adjacency.csv") {
     cursor = 0
-    pb <- txtProgressBar(style = 3)
     while (!is.null(cit_df <- read_csv(file, skip = cursor, n_max = 10000, col_types = "ccdD", 
                                        col_names = c("Patent", "Citation", "Date", "Date2")))) {
-        setTxtProgressBar(pb, cursor)
+        print(cursor)
         adjacency <- lapply(cit_df$Citation, find_adjacency) %>% t 
         adjacency <- as.data.frame(matrix(unlist(adjacency), ncol = 2, byrow = TRUE))
         colnames(adjacency) <- c("Patent", "Citation")
