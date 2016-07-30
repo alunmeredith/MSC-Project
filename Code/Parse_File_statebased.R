@@ -95,11 +95,15 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
                tag_initialise_result <- '<?xml version="1.0" encoding="UTF-8"?>'
                tag_flush_patent <- '</us-patent-grant>'
                tag_flush_citation <- c("</us-citation>", "</citation>")
-               tag_add_patent_information <- c("<doc-number></doc-number>", "<date></date>")
-               tag_add_citation_information <- c("<doc-number></doc-number>", "<date></date>")
+               tag_add_patent_information <- c("<doc-number></doc-number>", "<date></date>",
+                                               "<main-classification></main-classification>", 
+                                               "<further-classification></further-classification>")
+               tag_add_citation_information <- c("<doc-number></doc-number>", "<date></date>", 
+                                                 "<category></category>", "<country></country>")
                tag_state_change_citation <- c("<us-citation>", "<citation>")
-               tag_state_change_patent <- "<publication-reference>"
-               tag_state_change_none <- c("</publication-reference>", "</us-ciation>", "</citation>")
+               tag_state_change_patent <- c("<publication-reference>", "<classification-national>")
+               tag_state_change_none <- c("</publication-reference>", "</us-ciation>", 
+                                          "</citation>", "</classification-national>")
            },
            sgml = {
                tag_initialise_result <- '<SDOBI>'
