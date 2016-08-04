@@ -1,0 +1,62 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r}
+fit_pl <- function(year) {
+    time <- Sys.time()
+    print(paste("Processing", year))
+    
+    # Libraries
+    library(poweRlaw)
+    
+    ## INITIALISE DATA ##########################
+    # Load data
+    load("degree_distribution.RData")
+    # Filter year
+    ddyear <- degree_distribution_all %>% filter(Year == year) %>% group_by() %>% select(Order, count)
+    # Produce tall vector (as poweRlaw interacts with)
+    vec <- NULL
+    for(row in seq_len(nrow(ddyear))) {
+        vec <- c(vec, rep(as.numeric(ddyear[row,"Order"]), ddyear[row,"count"]))
+    }
+    # Remove zeros because log scale can't handle it. 
+    vec <- vec[vec != 0] 
+    
+    ## Fit power law #######################
+    m_pl <- displ$new(vec)
+    est = estimate_pars(m_pl)
+    est_pl <- estimate_xmin(m_pl)
+    m_pl$setXmin(est_pl)
+    
+    print(Sys.time() - time)
+    return(m_pl)
+}
+```
+
+```{r}
+if (file.exists("power_law_fits.RDS")) {
+    pl <- readRDS("power_law_fits.RDS")
+} else {
+    pl <- list()
+    for (yr in 1976:2015) {
+        pl[[yr]] <- fit_pl(yr)
+    }
+    saveRDS(pl, "power_law_fits.RDS")
+}
+```
+```{r}
+vec <- NULL
+for (yr in 1976:2015) {
+    vec <- c(vec, pl[[yr]]$getPars())
+}
+```
+
+```{r}
+par(mfrow = c(1,1))
+plot(1976:2015, vec)
+```
+

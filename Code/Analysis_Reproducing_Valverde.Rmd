@@ -1,6 +1,7 @@
 ---
 title: "Reproducing Valverde"
 output:
+  pdf_document: default
   html_notebook: default
   html_document: default
 ---
@@ -31,8 +32,6 @@ str(data)
 ```
 ## Plot 1: Patents granted by year
 The first plot counts the number of patents granted by year, there is an inset which looks at this as a cumulative sum on a log-log scale.
-
-
 
 In order to process the data into a tidy format processable by ggplot, we summarise it counting the number of entries (patents) for each year. There are a few outliers (`r nrow(data %>% group_by(Year) %>% summarise(count = n()) %>% filter(!(Year %in% 1976:2015)))`) so this is then filtered to only allow only patents within that range. 
 
@@ -112,10 +111,11 @@ grid.arrange(gg1b.lm1, gg1b.lm2, ncol=2)
 ## Plot2: In degree distribution
 
 ```{r plot2 data summary}
-degree_distribution <- data %>% group_by(Year, Order) %>% summarise(count = n()) %>% filter(Year %in% c(1984, 1992, 2002, 2012))
-degree_distribution <- degree_distribution %>% 
+degree_distribution_all <- data %>% group_by(Year, Order) %>% summarise(count = n())
+degree_distribution_all <- degree_distribution_all %>% 
     group_by(Year) %>%
     mutate(group_total = sum(count), freq = count / group_total)
+degree_distribution <- filter(degree_distribution_all, Year %in% c(1984, 1992, 2002, 2012))
 ```
 
 
@@ -231,97 +231,8 @@ hist2 <-dplyr::filter(hist, Year %in% c(1984,1992,2002,2012))
  * Our data has lower maximum counts and higher maximum order (1e3 rather than 1e2)
     * This could indicate that valverde doesn't include __foreign citations__ whereas we do. 
 
-## Fitting degree distribution
-
-Using only 2002 as an example, we can use the "poweRlaw" package to fit different models to the in-degree distribution. This package is based on the Newman paper ["Power-law distributions in empirical data" (2009)](http://arxiv.org/pdf/0706.1062.pdf). The purpose of that paper and this section is to empirically deduce the underlying models without assuming it is a pwoer law. 
-
-```{r mutate data}
-# Filter 2002 and build into a tall format which poweRlaw interacts with. 
-t2 <- degree_distribution %>% filter(Year == 2002) %>% group_by() %>% select(Order, count)
-vec <- NULL
-for(row in seq_len(nrow(t2))) {
-    vec <- c(vec, rep(as.numeric(t2[row,"Order"]), t2[row,"count"]))
-}
-# Remove zeros because log scale can't handle it. 
-vec <- vec[vec != 0] 
-```
-
-poweRlaw deals with 4 types of discrete model: power law, lognormal, exponential and poisson. We can use poweRlaw to fit these models to the data, estimating their parameters and minimum value of x for which they apply. 
-```{r fit models}
-m_pl <- displ$new(vec)
-est = estimate_pars(m_pl)
-est_pl <- estimate_xmin(m_pl)
-m_pl$setXmin(est_pl)
-print(cat("Power Law \n xmin: " , m_pl$getXmin(), "\n Parameters:", m_pl$getPars(), "\n Goodness of Fit: ", round(est_pl$gof,2)))
-
-m_ln <- dislnorm$new(vec)
-est = estimate_pars(m_ln)
-est_ln <- estimate_xmin(m_ln)
-m_ln$setXmin(est_ln)
-print(cat("Log-normal \n xmin: "  , m_ln$getXmin(), "\n Parameters:", m_ln$getPars(), "\n Goodness of Fit: ", round(est_ln$gof, 2)))
-
-m_exp <- disexp$new(vec)
-est = estimate_pars(m_exp)
-est_exp <- estimate_xmin(m_exp)
-m_exp$setXmin(est_exp)
-print(cat("Exponential \n xmin: "  , m_exp$getXmin(), "\n Parameters:", m_exp$getPars(), "\n Goodness of Fit: ", round(est_exp$gof, 2)))
-
-m_pois <- dispois$new(vec)
-est = estimate_pars(m_pois)
-est_pois <- estimate_xmin(m_pois)
-m_pois$setXmin(est_pois)
-print(cat("Poisson \n xmin: "  , m_pois$getXmin(), "\n Parameters:", m_pois$getPars(), "\n Goodness of Fit: ", round(est_pois$gof, 2)))
-```
 
 
-```{r}
-par(mfrow = c(2,2))
-par(cex = .5)
-par(lwd = 2)
-    plot(m_pl, main = "power-law")
-    lines(m_pl, col="green") # green
-    
-    plot(m_ln, main = "log-normal")
-    lines(m_ln, col = "red") # red
-    
-    plot(m_exp, main = "exponential")
-    lines(m_exp, col="blue") # blue
-    
-    plot(m_pois, main = "poisson")
-    lines(m_pois, col="orange") # grey
-```
-
-The above plot shows the CDF with lines of best fit for each of the distributions, as we can see the Exponential ans poisson distributions only fit to very small low frequency sections of the tail with poor goodness of fit, it is quite easy to discount these as possible underlying mechanisms. The power law and log-normal however have very similar goodness of fits and importantly fit best the centre bulk of the data before extreme effects occur. 
-
-Using a bootstrapping method
-```{r, eval=FALSE}
-bs_pl = bootstrap_p(m_pl, no_of_sims=2500, threads=8)
-bs_ln = bootstrap_p(m_ln, no_of_sims=2500, threads=8)
-```
-
-Using a bootstrapping method to obtain a p value for distributions
-
-- The paper says that for a given accuracy in the p value the number of simulations required scales $~ \frac{1}{4}\eta^{-1/2}$.
-- The paper also approximates a p value cut off of about 0.1 to disregard the hypothesis of the tested distribution. 
-- To get an accuracy of 0.01 we need 2500 simulations, this is would take far too long (~6 hours for power law, and ~ 27hours for lognormal)
-- To get around this we will take a sample of the data (currently we have n = `r length(vec)` elements) and the paper shows that n > 1000 seems to accurately differentiate. We will use n = 10,000 to be confident of this. 
-```{r, eval=FALSE, warning=FALSE}
-set.seed(1)
-sample_vec <- sample(vec, 1e5)
-m_pl_sample <- displ$new(sample_vec)
-est_pl_sample <- estimate_xmin(m_pl_sample)
-m_pl_sample$setXmin(est_pl_sample)
-bs_pl_sample = bootstrap_p(m_pl_sample, no_of_sims=2500, threads=4)
-
-m_ln_sample <- m_pl <- displ$new(sample_vec)
-bs_ln = bootstrap_p(m_ln, no_of_sims=100, threads=4)
-```
-
-```{r}
-if (!exists(c("bs_pl", "bs_ln"))) load("indegree_bootstrapping.RData")
-print(paste("Log-normal p value:", bs_ln$p))
-print(paste("Power-law p value:", bs_pl$p))
-```
 
 ```{r save, echo=FALSE, message=FALSE, warning=FALSE}
 png("Figures/gg1.png"); gg1; dev.off()
@@ -331,26 +242,6 @@ png("Figures/gg2a.png"); gg2a; dev.off()
 png("Figures/gg2a2.png"); gg2a2; dev.off()
 png("Figures/gg2a3.png"); gg2a3; dev.off()
 
-png("Figures/indegree_models.png")
-
-par(mfrow = c(2,2))
-par(cex = .5)
-par(lwd = 2)
-    plot(m_pl, main = "power-law")
-    lines(m_pl, col="green") # green
-    
-    plot(m_ln, main = "log-normal")
-    lines(m_ln, col = "red") # red
-    
-    plot(m_exp, main = "exponential")
-    lines(m_exp, col="blue") # blue
-    
-    plot(m_pois, main = "poisson")
-    lines(m_pois, col="orange") # grey
-dev.off()
-
 save(year_counts, file = "year_counts.RData")
-save(m_exp, m_ln, m_pois, m_pl, file = "indegree_models.RData")
-save(est_exp, est_ln, est_pois, est_pl, file = "indegree_estimates.RData")
-save(bs_pl, bs_ln, file = "indegree_bootstrapping.RData")
+save(degree_distribution_all, degree_distribution, file = "degree_distribution.RData")
 ```

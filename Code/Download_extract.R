@@ -3,7 +3,7 @@
 ### "https://bulkdata.uspto.gov/data2/patent/grant/redbook/bibliographic/"
 ###
 
-download <- function(years = 2016:1976, download.to.dir = "DataFiles/Raw/") {
+download <- function(years = 2016:1976, download.to.dir = "../DataFiles/Raw/") {
     library(RCurl)
     library(XML)
     download.urls <-
@@ -22,21 +22,21 @@ download <- function(years = 2016:1976, download.to.dir = "DataFiles/Raw/") {
                     }
                )
     names(download.urls) <- paste0("Yr", years)
-
+    browser()
     # Download each file
     for (year in years) {
         download.location <- paste0(download.to.dir, year)
         if (!dir.exists(download.location)) dir.create(download.location, recursive = TRUE)
         urls.year <- download.urls[[paste0("Yr", year)]]
-    
+        print(urls.year)
         # Remove from the download queue any files which  have already been downloaded
-        already.downloaded <- list.files(download.location)
-        if(length(already.downloaded) > 0) {
-            already.downloaded <- sapply(already.downloaded, function(string) stringr::str_extract(string, ".*\\."))
-            already.downloaded <- unique(already.downloaded)
-            x <- sapply(already.downloaded, function(x) grepl(x, urls.year))
-            urls.year <- urls.year[!rowSums(x)]
-        }
+        # already.downloaded <- list.files(download.location)
+        # if(length(already.downloaded) > 0) {
+        #     already.downloaded <- sapply(already.downloaded, function(string) stringr::str_extract(string, ".*\\."))
+        #     already.downloaded <- unique(already.downloaded)
+        #     x <- sapply(already.downloaded, function(x) grepl(x, urls.year))
+        #     urls.year <- urls.year[!rowSums(x)]
+        # }
     
         # Download each file and unzip them into folders based on yea
         for (url in urls.year) {
@@ -49,22 +49,22 @@ download <- function(years = 2016:1976, download.to.dir = "DataFiles/Raw/") {
 
     # Create a list of the files which were unable to be downloaded
     # Write that list to a file in the data directory
-    urls.missed <- vector()
-    for (year in years) {
-        download.location <- paste0(download.to.dir, year)
-        urls.year <- download.urls[[ paste0("Year_", year) ]]
-    
-        # Remove from the download queue any files which  have already been downloaded
-        already.downloaded <- list.files(download.location)
-        if(length(already.downloaded) > 0) {
-            already.downloaded <- sapply(already.downloaded, function(string) stringr::str_extract(string, ".*\\."))
-            already.downloaded <- unique(already.downloaded)
-            x <- sapply(already.downloaded, function(x) grepl(x, urls.year))
-            if (length(x) > 1) {
-                urls.missed.year <- urls.year[!rowSums(x)]
-                urls.missed <- c(urls.missed, urls.missed.year)
-            }
-        }
-    }
-    write(urls.missed, file = paste0(download.to.dir, "Unable_to_download.txt"))
+    # urls.missed <- vector()
+    # for (year in years) {
+    #     download.location <- paste0(download.to.dir, year)
+    #     urls.year <- download.urls[[ paste0("Yr", year) ]]
+    # 
+    #     # Remove from the download queue any files which  have already been downloaded
+    #     already.downloaded <- list.files(download.location)
+    #     if(length(already.downloaded) > 0) {
+    #         already.downloaded <- sapply(already.downloaded, function(string) stringr::str_extract(string, ".*\\."))
+    #         already.downloaded <- unique(already.downloaded)
+    #         x <- sapply(already.downloaded, function(x) grepl(x, urls.year))
+    #         if (length(x) > 1) {
+    #             urls.missed.year <- urls.year[!rowSums(x)]
+    #             urls.missed <- c(urls.missed, urls.missed.year)
+    #         }
+    #     }
+    # }
+    # write(urls.missed, file = paste0(download.to.dir, "Unable_to_download.txt"))
 }

@@ -2,7 +2,7 @@
 # Download Data -----------------------------------------------------------
 
 source("Download_extract.R")
-
+download(years = 1976:2015)
 
 # Extract Data  -----------------------------------------------------------
 # Parses through each set of files in the same manner to extract the date and
@@ -21,4 +21,8 @@ for(yr in 1976:2015) {
 # Clean Data --------------------------------------------------------------
 # Names columns, Removes Duplicated Values, Concatonates patent data into one df
 source("Cleaning.R")
-
+cleaning(input.dir = "Processed2", output.dir = "Cleaned2",
+         patent.colnames = c("Patent", "Date", "Classification", "FurtherClassification", "Order"),
+         patent.coltypes = "ccccd",
+         citation.colnames = c("Patent", "Citation", "Date", "CitedBy", "Country"),
+         citation.coltypes = "ccccc")
