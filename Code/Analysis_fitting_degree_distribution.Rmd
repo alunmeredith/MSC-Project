@@ -39,8 +39,8 @@ In the above we see equally low order p values reafirming that it is hard to str
 This matches what we see in the tail of the distributions, after x = 150-200 there is a strange dip to the frequencies and log-normal follows this more closely, however during the linear section power law is a better fit. 
 
 ```{r, include=FALSE}
-if (file.exists("order_fit_distributions1978.rds")) {
-    x1978 <- readRDS("order_fit_distributions1978.rds")
+if (file.exists("Dat/order_fit_distributions1978.rds")) {
+    x1978 <- readRDS("Dat/order_fit_distributions1978.rds")
 } else {
     x1978 <- fit_distributions(1978, bootstrap = "pl")
 }
@@ -57,8 +57,8 @@ The above plot shows power law and exponential functions as a good fit whereas t
 As a theme the log-likelihood ratio varies by at first being slightly in favour of power law before briefly switching and becoming more extreme in the tail. 
 
 ```{r, include=FALSE}
-if (file.exists("order_fit_distributions1992.rds")) {
-    x1992 <- readRDS("order_fit_distributions1992.rds")
+if (file.exists("Dat/order_fit_distributions1992.rds")) {
+    x1992 <- readRDS("Dat/order_fit_distributions1992.rds")
 } else {
     x1992 <- fit_distributions(1992, bootstrap = "pl")
 }
@@ -72,8 +72,8 @@ x1992$plots[[3]]
 ```
 
 ```{r, include=FALSE}
-if (file.exists("order_fit_distributions2002.rds")) {
-    x2002 <- readRDS("order_fit_distributions2002.rds")
+if (file.exists("Dat/order_fit_distributions2002.rds")) {
+    x2002 <- readRDS("Dat/order_fit_distributions2002.rds")
 } else {
     x2002 <- fit_distributions(2002, bootstrap = "pl")
 }
@@ -87,8 +87,8 @@ x2002$plots[[3]]
 ```
 
 ```{r, include=FALSE}
-if (file.exists("order_fit_distributions2012.rds")) {
-    x2012 <- readRDS("order_fit_distributions2012.rds")
+if (file.exists("Dat/order_fit_distributions2012.rds")) {
+    x2012 <- readRDS("Dat/order_fit_distributions2012.rds")
 } else {
     x2012 <- fit_distributions(2012)
 }

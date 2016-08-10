@@ -1,19 +1,21 @@
 
-fit_distributions <- function(year, bootstrap = NULL) {
+fit_distributions <- function(year, out_lab = "", bootstrap = NULL, degree_distribution_all = NULL, var = "count") {
     
     # Libraries
     library(dplyr)
     library(poweRlaw)
     
     ## INITIALISE DATA ##########################
-    # Load data
-    load("degree_distribution.RData")
+        # Load data
+    if (is.null(degree_distribution_all)) {
+        load("Dat/degree_distribution.RData")
+    }
     # Filter year
-    ddyear <- degree_distribution_all %>% filter(Year == year) %>% group_by() %>% select(Order, count)
+    ddyear <- degree_distribution_all %>% filter(Year == year) %>% group_by() %>% select(Order, get(var))
     # Produce tall vector (as poweRlaw interacts with)
     vec <- NULL
     for(row in seq_len(nrow(ddyear))) {
-        vec <- c(vec, rep(as.numeric(ddyear[row,"Order"]), ddyear[row,"count"]))
+        vec <- c(vec, rep(as.numeric(ddyear[row,"Order"]), ddyear[row, var]))
     }
     # Remove zeros because log scale can't handle it. 
     vec <- vec[vec != 0] 
@@ -107,7 +109,7 @@ fit_distributions <- function(year, bootstrap = NULL) {
                 comparisons = list(powerlaw = comp_plln, lognormal = comp_lnpl),
                 plots = list(distFit.plot, loglik.plot, distFit2.plot))
 
-    saveRDS(ret, file = paste0("order_fit_distributions", year, ".rds"))
+    saveRDS(ret, file = paste0("Dat/order_fit_distributions", out_lab, year, ".rds"))
     
     return(ret)
 }

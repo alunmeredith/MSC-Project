@@ -85,16 +85,16 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
     
     # If sgml check for citation and country information hidden inside the tag
     sgml_exceptions <- function(line) {
-        if (grepl("<CITED-BY-OTHER/>", line)) {
+        if (grepl("(<CITED-BY-OTHER/>)|(<CITED-BY-OTHER>)", line)) {
             citation_current[which(citation_colnames == "Cited by") - 1] <<- "cited by other"    
-        } else if (grepl("<CITED-BY-EXAMINER/>", line)){
+        } else if (grepl("(<CITED-BY-EXAMINER/>)|(<CITED-BY-EXAMINER>)", line)){
             citation_current[which(citation_colnames == "Cited by") - 1] <<- "cited by examiner"    
         }
         if (grepl("<PARTY-US>", line)) {
             citation_current[which(citation_colnames == "Country") - 1] <<- "US"
         }
         # Remove some extra tags which create duplicate matches
-        line <- str_replace(line, "(</DOC>)|(<CITED-BY-OTHER/>)|(<CITED-BY-EXAMINER/>)|(<PARTY-US>)", "")
+        line <- str_replace(line, "(</DOC>)|(<CITED-BY-OTHER/>)|(<CITED-BY-EXAMINER/>)|(<PARTY-US>)|(<CITED-BY-OTHER>)|(<CITED-BY-EXAMINER>)", "")
         return(line)
     }
     
@@ -125,8 +125,8 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
                tag_state_change_patent <- c("<publication-reference>", "<classification-national>")
                tag_state_change_none <- c("</publication-reference>", "</us-ciation>", 
                                           "</citation>", "</classification-national>")
-               citation_colnames <- c("Patent", "Citation", "Date", "Cited by", "Country")
-               patent_colnames <- c("Patent", "Date", "Main Classification", "Further Classification", "Order")
+               citation_colnames <- c("Patent", "Citation", "Date", "CitedBy", "Country")
+               patent_colnames <- c("Patent", "Date", "MainClassification", "FurtherClassification", "Order")
            },
            sgml = {
                tag_initialise_result <- '<SDOBI>'
@@ -142,8 +142,8 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
                tag_state_change_citation <- "<B561>"
                tag_state_change_patent <- '<SDOBI>'
                tag_state_change_none <- NULL
-               citation_colnames <- c("Patent", "Citation", "Date", "Cited by", "Country")
-               patent_colnames <- c("Patent", "Date", "Main Classification", "Further Classification", "Order")
+               citation_colnames <- c("Patent", "Citation", "Date", "CitedBy", "Country")
+               patent_colnames <- c("Patent", "Date", "MainClassification", "FurtherClassification", "Order")
            })
     
     # Initialise total taglist and response index

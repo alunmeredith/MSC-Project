@@ -1,0 +1,13 @@
+db.patents.ensureIndex( { Patent: 1} )
+db.patents.ensureIndex( { Date: 1} )
+db.patents.ensureIndex( { Date2: 1} )
+db.patents.ensureIndex( { Order: 1} )
+db.patents.ensureIndex( { MainClassification: 1} )
+db.patents.ensureIndex( { FurtherClassification: 1} )
+
+db.citations.ensureIndex( { Patent: 1} )
+db.citations.ensureIndex( { Citation: 1} )
+db.citations.ensureIndex( { Date: 1} )
+db.citations.ensureIndex( { CitedBy: 1} )
+db.citations.ensureIndex( { Country: 1} )
+db.citations.ensureIndex( { Date2: 1} )

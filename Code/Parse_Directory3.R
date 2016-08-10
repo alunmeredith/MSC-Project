@@ -1,7 +1,7 @@
 # This function cycles through a directory (year) and parses it acording to the above two functions and saves them 
 parse_directory <- function(year, write.dir = "../DataFiles/Processed2",  prefer.cat = TRUE, doc_type = NULL) {
     require(stringr)
-    #source("Parse_File_statebased.R")
+    source("Parse_File_statebased.R")
     
     dirs <- paste0(write.dir, c("/patent","/citation"))
     sapply(dirs, function(dir) if(!dir.exists(dir)) {dir.create(dir, recursive = TRUE)})
@@ -62,6 +62,7 @@ parse_directory <- function(year, write.dir = "../DataFiles/Processed2",  prefer
         
         out_pat <-  paste0(write.dir, "/patent/" ,year, ".csv")
         out_cit <- paste0(write.dir, "/citation/", year, ".csv")
+        #browser()
         parse(input_path = file.paths[i], type = doc_type, output_path_patent = out_pat, output_path_citation = out_cit)
         
         print(paste("Time to process: ", Sys.time() - t))
