@@ -1,4 +1,5 @@
 parse <- function(input_path, type, output_path_patent, output_path_citation) {
+    #browser()
     # Libraries 
     require(stringr)
     require(readr)
@@ -16,9 +17,16 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
     
     # Initialise output vecotrs for patent / citations upon reaching a new patent
     initialise_result <- function() {
-        patent <<- vector("character", length = length(tag_add_patent_information))
+        # If files don't exist write their column names
+        if (!file.exists(output_path_patent)) {
+            write(patent_colnames, output_path_patent, sep = ",", append = F, ncolumns = length(patent_colnames))
+        }
+        if (!file.exists(output_path_citation)) {
+            write(citation_colnames, output_path_citation, sep = ",", append = F, ncolumns = length(citation_colnames))
+        }
+        patent <<- vector("character", length = length(patent_colnames))
         citations <<- NULL
-        citation_current <<- vector("character", length = length(tag_add_citation_information))
+        citation_current <<- vector("character", length = length(citation_colnames) - 1)
     }
     
     # Write patent / citation information to file upon finding the end of the current patent
@@ -27,19 +35,18 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
             # Add degree to dataframe
             nrow_citations <- nrow(citations)
             if (is.null(nrow_citations)) nrow_citations <- 0
-            patent <- c(patent, nrow_citations)
-            
+            patent[which(patent_colnames == "Order")] <- nrow_citations
             write(patent, output_path_patent, sep = ",", 
-                  append = T, ncolumns = length(tag_add_patent_information) + 1)
+                  append = T, ncolumns = length(patent_colnames))
             write_csv(as.data.frame(citations), output_path_citation, append = T)
         }
     }
     
     # Add current citation to citations matrix after finding the end of the current citaiton
     flush_citation <- function() {
-        if (sum(citation_current != c("","", "")) > 0) {
+        if (sum(citation_current != rep("", length(citation_colnames) - 1)) > 0) {
             citations <<- rbind(citations, c(patent[1], citation_current))
-            citation_current <<- vector("character", length = length(tag_add_citation_information))
+            citation_current <<- vector("character", length = length(citation_colnames) - 1)
         }
     }
     
@@ -47,15 +54,15 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
     add_patent_information <- function(tag = line_tag, State = state, 
                                        vars = tag_add_patent_information) {
         if (State != "patent") return()
-        i <- match(tag, vars)
-        patent[i] <<- contents()
+        ii <- match(tag, vars)
+        patent[ii] <<- contents()
     }
     
     add_citation_information <- function(tag = line_tag, State = state, 
                                          vars = tag_add_citation_information) {
         if (State != "citation") return()
-        i <- match(tag, vars)
-        citation_current[i] <<- contents()
+        ii <- match(tag, vars)
+        citation_current[ii] <<- contents()
     }
     
     # State change: upon reaching different sections change state 
@@ -76,6 +83,20 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
                str_replace_all(line, "<.*?>", ""))
     } 
     
+    # If sgml check for citation and country information hidden inside the tag
+    sgml_exceptions <- function(line) {
+        if (grepl("(<CITED-BY-OTHER/>)|(<CITED-BY-OTHER>)", line)) {
+            citation_current[which(citation_colnames == "Cited by") - 1] <<- "cited by other"    
+        } else if (grepl("(<CITED-BY-EXAMINER/>)|(<CITED-BY-EXAMINER>)", line)){
+            citation_current[which(citation_colnames == "Cited by") - 1] <<- "cited by examiner"    
+        }
+        if (grepl("<PARTY-US>", line)) {
+            citation_current[which(citation_colnames == "Country") - 1] <<- "US"
+        }
+        # Remove some extra tags which create duplicate matches
+        line <- str_replace(line, "(</DOC>)|(<CITED-BY-OTHER/>)|(<CITED-BY-EXAMINER/>)|(<PARTY-US>)|(<CITED-BY-OTHER>)|(<CITED-BY-EXAMINER>)", "")
+        return(line)
+    }
     
     ## initialisation ###################################################
     state <- "patent"
@@ -104,19 +125,25 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
                tag_state_change_patent <- c("<publication-reference>", "<classification-national>")
                tag_state_change_none <- c("</publication-reference>", "</us-ciation>", 
                                           "</citation>", "</classification-national>")
+               citation_colnames <- c("Patent", "Citation", "Date", "CitedBy", "Country")
+               patent_colnames <- c("Patent", "Date", "MainClassification", "FurtherClassification", "Order")
            },
            sgml = {
                tag_initialise_result <- '<SDOBI>'
                tag_flush_patent <- "</SDOBI>"
                tag_flush_citation <- "</B561>"
-               tag_add_patent_information <- c("<B110><DNUM><PDAT></PDAT></DNUM></B110>",
-                                               "<B140><DATE><PDAT></PDAT></DATE></B140>")
-               tag_add_citation_information <- c("<DOC><DNUM><PDAT></PDAT></DNUM>", 
-                                                 "<DATE><PDAT></PDAT></DATE>",
-                                                 "<DATE><PDAT></PDAT></DATE></DOC>")
+               tag_add_patent_information <- c("<B110><DNUM><PDAT></PDAT></DNUM></B110>", # patent number
+                                               "<B140><DATE><PDAT></PDAT></DATE></B140>", # Date
+                                               "<B521><PDAT></PDAT></B521>", # Main classification,
+                                               "<B522><PDAT></PDAT></B522>") # Further classification
+               tag_add_citation_information <- c("<DOC><DNUM><PDAT></PDAT></DNUM>", # Patent number
+                                                 "<DATE><PDAT></PDAT></DATE>", # Patent Date
+                                                 "<CTRY><PDAT></PDAT></CTRY>") # Country
                tag_state_change_citation <- "<B561>"
                tag_state_change_patent <- '<SDOBI>'
                tag_state_change_none <- NULL
+               citation_colnames <- c("Patent", "Citation", "Date", "CitedBy", "Country")
+               patent_colnames <- c("Patent", "Date", "MainClassification", "FurtherClassification", "Order")
            })
     
     # Initialise total taglist and response index
@@ -145,6 +172,8 @@ parse <- function(input_path, type, output_path_patent, output_path_citation) {
                            substring(line, 1, 4), 
                            str_replace_all(line, ">.*?<", "><")
                            )
+        
+        if (type == "sgml") line_tag <- sgml_exceptions(line_tag)
     
         # Check if it matches any in the list 
         matches <- tag_index[tag_all %in% line_tag]

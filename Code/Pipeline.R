@@ -26,3 +26,5 @@ cleaning(input.dir = "Processed2", output.dir = "Cleaned2",
          patent.coltypes = "ccccd",
          citation.colnames = c("Patent", "Citation", "Date", "CitedBy", "Country"),
          citation.coltypes = "ccccc")
+
+# After cleaning data is put onto mongodb

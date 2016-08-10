@@ -15,7 +15,7 @@ fit_pl <- function(year) {
     
     ## INITIALISE DATA ##########################
     # Load data
-    load("degree_distribution.RData")
+    load("Dat/degree_distribution.RData")
     # Filter year
     ddyear <- degree_distribution_all %>% filter(Year == year) %>% group_by() %>% select(Order, count)
     # Produce tall vector (as poweRlaw interacts with)
@@ -38,14 +38,14 @@ fit_pl <- function(year) {
 ```
 
 ```{r}
-if (file.exists("power_law_fits.RDS")) {
-    pl <- readRDS("power_law_fits.RDS")
+if (file.exists("Dat/power_law_fits.RDS")) {
+    pl <- readRDS("Dat/power_law_fits.RDS")
 } else {
     pl <- list()
     for (yr in 1976:2015) {
         pl[[yr]] <- fit_pl(yr)
     }
-    saveRDS(pl, "power_law_fits.RDS")
+    saveRDS(pl, "Dat/power_law_fits.RDS")
 }
 ```
 ```{r}

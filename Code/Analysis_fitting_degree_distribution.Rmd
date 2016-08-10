@@ -46,8 +46,8 @@ We can see from the graph that exponential and poisson distributions do not fit 
 For the likelihood ratio test we reafirm what we saw in the graphs where the power-law is optimised for a specific point in the graph where it is straightest but as you move away from that point it performs substantially worse, exempliefied by the behaviour at high orders (in the tail). Furthermore the difference between power law and log-normal increases over time as the network grows larger. 
 
 ```{r, include=FALSE}
-if (file.exists("order_fit_distributions1978.rds")) {
-    x1978 <- readRDS("order_fit_distributions1978.rds")
+if (file.exists("Dat/order_fit_distributions1978.rds")) {
+    x1978 <- readRDS("Dat/order_fit_distributions1978.rds")
 } else {
     x1978 <- fit_distributions(1978, bootstrap = "pl")
 }
@@ -61,8 +61,8 @@ x1978$plots[[3]]
 ```
 
 ```{r, include=FALSE}
-if (file.exists("order_fit_distributions1992.rds")) {
-    x1992 <- readRDS("order_fit_distributions1992.rds")
+if (file.exists("Dat/order_fit_distributions1992.rds")) {
+    x1992 <- readRDS("Dat/order_fit_distributions1992.rds")
 } else {
     x1992 <- fit_distributions(1992, bootstrap = "pl")
 }
@@ -76,8 +76,8 @@ x1992$plots[[3]]
 ```
 
 ```{r, include=FALSE}
-if (file.exists("order_fit_distributions2002.rds")) {
-    x2002 <- readRDS("order_fit_distributions2002.rds")
+if (file.exists("Dat/order_fit_distributions2002.rds")) {
+    x2002 <- readRDS("Dat/order_fit_distributions2002.rds")
 } else {
     x2002 <- fit_distributions(2002, bootstrap = "pl")
 }
@@ -91,8 +91,8 @@ x2002$plots[[3]]
 ```
 
 ```{r, include=FALSE}
-if (file.exists("order_fit_distributions2012.rds")) {
-    x2012 <- readRDS("order_fit_distributions2012.rds")
+if (file.exists("Dat/order_fit_distributions2012.rds")) {
+    x2012 <- readRDS("Dat/order_fit_distributions2012.rds")
 } else {
     x2012 <- fit_distributions(2012)
 }
