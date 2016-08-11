@@ -1,0 +1,26 @@
+---
+title: "DissertationPlan"
+author: "Alun"
+date: "11 August 2016"
+output: html_document
+---
+
+## Structure of MSC Report along with notebook and code files related to them: 
+
+### Introduction
+### Literature Review
+  - [Project-Preparation Literature Review](https://github.com/alunmeredith/MSC-Project/blob/master/Litrature/Report/review.pdf)
+  - Planned Structure of Changes]
+# Data Processing / pipeline
+ - Download datafiles from uspto website (Download_extract.R)
+    - 110 Gb of data
+    - 2 Weeks of data missing from 2015 (denied download)
+    - DataFiles in 3 major formats (and minor schema changes); text, sgml and xml. 
+    - 2001 is a year with overlapping text and sgml files
+    - **** onlwards includes list files listing patents expected to be present. 
+ - Parse each datafile for relatvent information (Parse_File_statebased.R)
+ - (Parse_Directory3.R)
+ - (Cleaning.R)
+ - (mongo_csv_import.bash)
+ - (mongodbIndexes.js)
+ - (orderCalc_mapReduce.js)
