@@ -12,17 +12,23 @@ but on behalf of a single inventor, and by the applicant
 library(dplyr)
 library(ggplot2)
 library(rmongodb)
-mongo <- mongo.create()
-mongo.is.connected(mongo)
-db <- "sotonproject"
-orderFrequencies <- mongo.find.all(mongo, "sotonproject.orderFrequencies")
-mongo.destroy(mongo)
-orderFrequencies <- lapply(orderFrequencies, unlist)
-orderFrequencies <- as.data.frame(orderFrequencies)
-orderFrequencies <- t(orderFrequencies)
-rownames(orderFrequencies) <- NULL
-colnames(orderFrequencies) <- c("Year", "Order", "Examiner", "Other", "Total", "Total2")
-orderFrequencies <- as.data.frame(apply(orderFrequencies, 2, as.numeric))
+library(poweRlaw)
+
+if (file.exists("Dat/orderFrequencies.rds")) {
+    orderFrequencies <- readRDS("Dat/orderFrequencies.rds")
+} else {
+    mongo <- mongo.create()
+    mongo.is.connected(mongo)
+    db <- "sotonproject"
+    orderFrequencies <- mongo.find.all(mongo, "sotonproject.orderFrequencies")
+    mongo.destroy(mongo)
+    orderFrequencies <- lapply(orderFrequencies, unlist)
+    orderFrequencies <- as.data.frame(orderFrequencies)
+    orderFrequencies <- t(orderFrequencies)
+    rownames(orderFrequencies) <- NULL
+    colnames(orderFrequencies) <- c("Year", "Order", "Examiner", "Other", "Total", "Total2")
+    orderFrequencies <- as.data.frame(apply(orderFrequencies, 2, as.numeric))
+}
 ```
 
 There are some differences between the order calculated through the citations using map reduce and the order calculated while processing the data. These differences are by and large negligible by there are rare large scale differences spread throughout the data. The larger errors are caused by a fault while uploading the data to mongodb, causing duplicate uploads of a section of 2013 and will be resolved soon. 
@@ -92,7 +98,7 @@ fit_pl <- function(year, var) {
     
     ## INITIALISE DATA ##########################
     # Load data
-    dat <- readRDS("orderFrequencies.rds")
+    dat <- readRDS("Dat/orderFrequencies.rds")
     # Filter year
     ddyear <- dat %>% filter(Year == year) %>% group_by() %>% select(Order, get(var))
     # Produce tall vector (as poweRlaw interacts with)
@@ -116,24 +122,30 @@ fit_pl(year = 2002, var = "Total2")
 ```
 
 ```{r}
-pl <- list()
 years <- 2001:2015
-for (yr in years) {
-    pl[[yr]] <- fit_pl(yr, "Total2")
+if (file.exists("Dat/power_law_fits_Orders.rdata")) {
+    load("Dat/power_law_fits_Orders.rdata")
+} else {
+    pl <- list()
+    for (yr in years) {
+        pl[[yr]] <- fit_pl(yr, "Total2")
+    }
+    
+    plExaminer <- list()
+    years <- 2001:2015
+    for (yr in years) {
+        plExaminer[[yr]] <- fit_pl(yr, "Examiner")
+    }
+    
+    plOther <- list()
+    years <- 2001:2015
+    for (yr in years) {
+        plOther[[yr]] <- fit_pl(yr, "Other")
+    }
+    save(pl, plExaminer, plOther, file = "Dat/power_law_fits_Orders.rdata") 
 }
 
-plExaminer <- list()
-years <- 2001:2015
-for (yr in years) {
-    plExaminer[[yr]] <- fit_pl(yr, "Examiner")
-}
 
-plOther <- list()
-years <- 2001:2015
-for (yr in years) {
-    plOther[[yr]] <- fit_pl(yr, "Other")
-}
-save(pl, plExaminer, plOther, file = "Dat/power_law_fits_Orders.rdata")
 ```
 
 ```{r}
@@ -157,7 +169,8 @@ points(years, vecExaminer, col = "red", pch = 3)
 ```
 
 ```{r}
-ExaminerDistributions <- fit_distributions(2001, out_lab = "test", degree_distribution_all = dat, var = "Examiner")
+source("order_fit_distributions.R")
+ExaminerDistributions <- fit_distributions(2001, out_lab = "test", degree_distribution_all = orderFrequencies, var = "Examiner")
 par(mfrow = c(2,2))
     par(cex = .5)
     par(lwd = 2)
@@ -176,7 +189,7 @@ ExaminerDistributions$comparisons[[2]][1:3] # upper limit on probability given l
 ```
 
 ```{r}
-OtherDistributions <- fit_distributions(2001, out_lab = "test", degree_distribution_all = dat, var = "Other")
+OtherDistributions <- fit_distributions(2001, out_lab = "test", degree_distribution_all = orderFrequencies, var = "Other")
 par(mfrow = c(2,2))
     par(cex = .5)
     par(lwd = 2)
