@@ -1,0 +1,30 @@
+---
+title: "Mean degree per year"
+output: html_notebook
+---
+
+```{r libraries}
+library(readr)
+library(dplyr)
+library(lubridate)
+```
+
+
+```{r load}
+data <- read_csv("../DataFiles/Cleaned/patent_cat.csv")
+data$Year <- year(data$Date2)
+```
+
+```{r}
+dat <- readRDS("Dat/orderFrequencies.rds")
+
+dat <- dat %>% group_by(Year) %>% summarise(av_degree = sum(Total2 * Order) / sum(Total2), av_degree_Other = sum(Other * Order) / sum(Other), av_degree_Examiner = sum(Examiner * Order) / sum(Examiner))
+plot(dat$Year, dat$av_degree, ylim = c(0,50))
+points(dat$Year, dat$av_degree_Other, col = "blue")
+points(dat$Year, dat$av_degree_Examiner, col = "red")
+```
+```{r}
+
+```
+
+# Aging of patents
