@@ -6,37 +6,44 @@ output:
     fig_height: 4
   html_notebook: default
 ---
-```{r load, message=FALSE}
+```{r load, message=FALSE, include=FALSE}
 library(dplyr)
 library(poweRlaw)
 source("order_fit_distributions.R")
 set.seed(156)
 ```
 ## Fitting degree distribution
-Using only 2002 as an example, we can use the "poweRlaw" package to fit different models to the in-degree distribution. This package is based on the Newman paper ["Power-law distributions in empirical data" (2009)](http://arxiv.org/pdf/0706.1062.pdf). The purpose of that paper and this section is to empirically deduce the underlying models without assuming it is a pwoer law. 
+The purpose of this section is to use more analytical methods to try and evaluate which distribution best represents the frequency of different orders of patents. 
 
-poweRlaw deals with 4 types of discrete model: power law, lognormal, exponential and poisson. We can use poweRlaw to fit these models to the data, estimating their parameters and minimum value of x for which they apply. 
+Because these methods are computationally expensive only a subset of the data will be analysed, choosing the years 1978, 1992, 2002, and 2012. All but the latter are the same years chosen by valverde in his plot and the latter is to represent the new data availible at an appropriate gap (~10 years).
 
-
-## Finding p values
+We can use the "poweRlaw" package to fit different models to the in-degree distribution. This package is based on the Newman paper ["Power-law distributions in empirical data" (2009)](http://arxiv.org/pdf/0706.1062.pdf). It includes several methods, 
+ * A maximisation of likelihood search to optimise paramters of 4 different discrete models to fit the data:power law, lognormal, exponential and poisson.
+    * We have done this for each of the 4 discrete distributions and shown it in a graph. 
+ * A likelihood ratio test to compare how two different models fit the data. 
+    * We compare log-normal to power law and vice versa. 
+ * A bootstrapping method to evaluate a p value for the data being from the distribution. 
+    * Currently computationally too expensive
+## Methods
 
 Using a bootstrapping method to obtain a p value for distributions
 
 - The paper says that for a given accuracy in the p value the number of simulations required scales $~ \frac{1}{4}\eta^{-1/2}$.
 - The paper also approximates a p value cut off of about 0.1 to disregard the hypothesis of the tested distribution. 
-- To get an accuracy of 0.01 we need 2500 simulations, this is would take far too long (~6 hours for power law, and ~ 27hours for lognormal)
-
-We find that over 2500 bootstrapped simulations the goodness of fit is never more extreme than our data. This means that **both distributions yield a p value of 0**. I think this is caused by the deviation from the fit towards the tail. Perhaps I should rerun the bootstrapping removing the tail?
-
+- To get an accuracy of 0.01 we need 2500 simulations, this is very computationally expensive so no results yet. 
 To find which is a better fit 
+
+Likelihood ratio to compare distributions. 
 
  * one sided p value is the upper limit on getting that small a log-likelihood ratio if the first distribution (m_pl) is true.
  * two sided p value is the probability of getting a log-likelihood ratio which deviates that much from zero in either direction if the two distributions are equally good. 
  * Test statistic is the sample average of the log-likelihood ratio standardised by an estimated standard deviation. 
- 
-In the above we see equally low order p values reafirming that it is hard to strongly link the data to a particular distribution. The test statistic states that the log-normal model fits better and looking at the plot we see that it is initially in favour of the power-law distribution but becomes increasingly closer to the log-normal towards the tail.
 
-This matches what we see in the tail of the distributions, after x = 150-200 there is a strange dip to the frequencies and log-normal follows this more closely, however during the linear section power law is a better fit. 
+## Results
+
+We can see from the graph that exponential and poisson distributions do not fit the data well. Power-law distributions, being perfectly straight on a log-log plot are unable to bend to the dip in the tail and log-normal shows the closest fit while not necessarily describing the tail perfectly in all years. 
+
+For the likelihood ratio test we reafirm what we saw in the graphs where the power-law is optimised for a specific point in the graph where it is straightest but as you move away from that point it performs substantially worse, exempliefied by the behaviour at high orders (in the tail). Furthermore the difference between power law and log-normal increases over time as the network grows larger. 
 
 ```{r, include=FALSE}
 if (file.exists("Dat/order_fit_distributions1978.rds")) {
@@ -52,9 +59,6 @@ x1978$comparisons[[2]][1:3]
 x1978$plots[[2]]
 x1978$plots[[3]]
 ```
-
-The above plot shows power law and exponential functions as a good fit whereas the exponential and poisson distributions are not. While both the one sided p values are not unsubstantial and the two sided p value (belonging to both distributions) is also statistically significant the p value for power law is very high. 
-As a theme the log-likelihood ratio varies by at first being slightly in favour of power law before briefly switching and becoming more extreme in the tail. 
 
 ```{r, include=FALSE}
 if (file.exists("Dat/order_fit_distributions1992.rds")) {

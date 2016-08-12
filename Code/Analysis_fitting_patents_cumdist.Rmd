@@ -4,15 +4,17 @@ output:
   pdf_document: default
   html_notebook: default
 ---
-```{r load data}
+```{r load data, include=FALSE}
 library(ggplot2)
 library(gridExtra)
 load("year_counts.RData")
 ```
 
-As we saw in the reproducing valverde notebook the valverde suggests that the cumluative number of patents is a power law N(t) ~ t^theta. From our fit and including more modern data we can see that this fit doesn't seem appropriate. In this script we look at alternative distributions and see which best explains the distribution. 
+In this notebook we explore the claim that the distribution of patent numbers over time follows a power law distribution. 
 
-```{r plot1_inset, fig.height=4, fig.width=11}
+As we saw in the reproducing valverde notebook the valverde suggests that the cumluative number of patents is a power law $N(t) \approx t^\theta$. From our fit and including more modern data we can see that this fit doesn't seem appropriate. The two plots below show the cdf of patents each year on a linear and log-log scale respectively. 
+
+```{r plot1_inset, fig.height=4, fig.width=11, echo=F}
 gg1b <- ggplot(data = year_counts, aes(x = rel_year, y = cum_count)) + 
     geom_point() +
     theme_bw() +
@@ -21,7 +23,9 @@ gg1b <- ggplot(data = year_counts, aes(x = rel_year, y = cum_count)) +
 grid.arrange(gg1b, gg1b + scale_x_log10() + scale_y_log10(), ncol=2)
 ```
 
-```{r, warning=FALSE}
+By transforming the data in different ways we can fit standard linear models to predict power law and exponential functions respectively:
+The exponential function clearly performs better with low p value and higher R squared. 
+```{r, warning=FALSE, echo=F}
 attach(year_counts, warn.conflicts = FALSE)
 exp.model <- lm(log(count) ~ rel_year)
 summary(exp.model)
@@ -29,9 +33,9 @@ summary(exp.model)
 pl.model <- lm(log(count) ~ log(rel_year))
 summary(pl.model)
 ```
-By fitting an exponential model we can see a much better fit, with lower p values and higher adjusted R squared. 
 
-```{r, fig.height=4, fig.width=11}
+We can visualise these fits onto the data. This clearly shows how the exponential function fits but more importantly when translated to non-cdf how the exponential function still nicely fits the data but the power law looks very odd and is only fitting to one cluster of data, it almost looks like a textbook example of high bias. 
+```{r, fig.height=4, fig.width=11, echo=F}
 exp.pred <- exp(predict(exp.model, interval = "confidence", level = 0.95))
 pl.pred <- exp(predict(pl.model, newdata = data.frame(rel_year = 1:40), interval = "confidence", level = 0.95))
 
@@ -56,7 +60,7 @@ grid.arrange(gg1, gg, gg + scale_x_log10() + scale_y_log10(), ncol = 3)
  - Should I try to fit other distributions
  - Is this enough analysis of this or should I do something more thorough? What would I do?
  - Plots In report should I have plots like this? If so I will make them 
-```{r save}
+```{r save, include=F}
 png("Figures/patentCountFit.png"); gg1; dev.off()
 png("Figures/patentCountFit_cum.png"); gg; dev.off()
 png("Figures/patentCountFit_cum_loglog.png"); gg + scale_x_log10() + scale_y_log10(); dev.off()

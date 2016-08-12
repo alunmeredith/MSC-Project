@@ -1,0 +1,25 @@
+---
+title: "Structure of Dissertation along with notebook and code files related to them:"
+author: "Alun"
+date: "11 August 2016"
+output: html_document
+---
+
+### Introduction
+### Literature Review
+  - [Project-Preparation Literature Review](https://github.com/alunmeredith/MSC-Project/blob/master/Litrature/Report/review.pdf)
+  - [Planned Structure of Changes](https://github.com/alunmeredith/MSC-Project/blob/master/Dissertation/DissertationPlan.Rmd)
+
+### Data Processing / pipeline
+ - [Download datafiles from uspto website](https://github.com/alunmeredith/MSC-Project/blob/master/Code/Download_extract.R)
+    - **107 Gb** of data covering the period of **1976 to 2001**. 
+    - **2 Weeks of data missing from 2015** (denied download). This has very minimal in most of the analysis, mainly the count of patents published per year. It may have some biases and other effects so we can keep this in mind when looking at the citations. 
+    - DataFiles in **3 major formats** (and minor schema changes); text (1976-2001), sgml (2001-2004) and xml (2005-present), there are some relavent schema changes within formats for sgml and xml. 
+    - 1996 onlwards includes **list files** listing patents expected to be present. Sgml and XML are in the form of weekly files but for **2001-2013 concatonated files** for the whole year are also present, text format is in a single file. 
+ - [Parse each datafile for relatvent information](https://github.com/alunmeredith/MSC-Project/blob/master/Code/Parse_File_statebased.R)
+    - The three different formats is the biggest issue 
+ - (Parse_Directory3.R)
+ - (Cleaning.R)
+ - (mongo_csv_import.bash)
+ - (mongodbIndexes.js)
+ - (orderCalc_mapReduce.js)
