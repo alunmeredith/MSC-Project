@@ -12,6 +12,7 @@ but on behalf of a single inventor, and by the applicant
 library(dplyr)
 library(ggplot2)
 library(rmongodb)
+library(poweRlaw)
 mongo <- mongo.create()
 mongo.is.connected(mongo)
 db <- "sotonproject"
