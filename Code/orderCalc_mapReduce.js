@@ -1,5 +1,5 @@
 // Start mongod
-// mongod --dbpath D:/MongodbBin/data2 --setParameter failIndexKeyTooLong=false
+// mongod --dbpath D:/MongodbBin/dataCurrent --setParameter failIndexKeyTooLong=false --noIndexBuildRetry
 
 // ---------------------------------------------------------------------------
 // Map reduce to count order (37.25mins)
@@ -23,11 +23,11 @@ var mapper = function() {
 var reducer = function(keyPatent, valueCitedby) {
 	var citEx = 0;
 	var ord = 0;
-	var orderOth = 0;
+	var citOth = 0;
 	for (var i = valueCitedby.length - 1; i >= 0; i--) {
 		citEx += valueCitedby[i].orderExaminer;
 		ord += valueCitedby[i].order;
-		orderOth += valueCitedby[i].orderOther;
+		citOth += valueCitedby[i].orderOther;
 	}
 	return {order: ord, orderExaminer: citEx, orderOther: citOth};
 };
@@ -36,7 +36,7 @@ db.citations.mapReduce(
 	mapper,
 	reducer,
 	{
-		out: "citationOrders2"
+		out: "patentOrders"
 	}
 );
 
@@ -104,7 +104,7 @@ var reducer = function(key, values) {
 };
 
 res = db.patents.mapReduce(patentMap, reducer, {out: {reduce: 'patentsJoined'}})
-res = db.citationOrders.mapReduce(ordersMap, reducer, {out: {reduce: 'patentsJoined'}})
+res = db.patentOrders.mapReduce(ordersMap, reducer, {out: {reduce: 'patentsJoined'}})
 
 // ---------------------------------------------------------------------------
 // Map Reduce to group on year and return frequencies of different orders. 
@@ -182,3 +182,65 @@ res = db.patentsJoined.mapReduce(mapperOther, reducer, {out: {reduce: 'orderFreq
 res = db.patentsJoined.mapReduce(mapperExaminer, reducer, {out: {reduce: 'orderFrequencies'}})
 res = db.patentsJoined.mapReduce(mapperOrder2, reducer, {out: {reduce: 'orderFrequencies'}})
 db.orderFrequencies.find()
+
+// ---------------------------------------------------------------------------
+// project only OrderExaminer,OrderOther for each patent to be used in scatterplot
+// ---------------------------------------------------------------------------
+
+db.patentsJoined.aggregate([
+    	{$project : { "value.OrderExaminer" : 1, "value.OrderOther" : 1, _id : 0}},
+    	{$out: "ExaminerOtherScatterplot"}
+	])
+
+// ---------------------------------------------------------------------------
+// Map reduce to count order of citations (37.25mins)
+// ---------------------------------------------------------------------------
+
+var mapper = function() {
+	var key = this.Citation;
+	var value = {
+		order: 1,
+		orderExaminer: 0,
+		orderOther: 0
+	};
+	if (this.CitedBy == "cited by examiner") {
+		value.orderExaminer = 1;
+	} else {
+		value.orderOther = 1;
+	}
+	emit(key, value);
+};
+
+var reducer = function(keyPatent, valueCitedby) {
+	var citEx = 0;
+	var ord = 0;
+	var citOth = 0;
+	for (var i = valueCitedby.length - 1; i >= 0; i--) {
+		citEx += valueCitedby[i].orderExaminer;
+		ord += valueCitedby[i].order;
+		citOth += valueCitedby[i].orderOther;
+	}
+	return {order: ord, orderExaminer: citEx, orderOther: citOth};
+};
+
+db.citations.mapReduce(
+	mapper,
+	reducer,
+	{
+		out: "citationOrders"
+	}
+);
+
+// ---------------------------------------------------------------------------
+// Create CitationsJoined which adds "PatentDate"
+// ---------------------------------------------------------------------------
+// db.citationsOld.find({ Date: { $gt: 18000000, $lte: 19000000}}).count()
+db.citationsOld.find({ Date: { $gt: 18000000, $lte: 19000000}}).noCursorTimeout().forEach(function (citationDoc){
+	var patentDoc = db.patentsOld.findOne({Patent: citationDoc.Patent});
+	if (patentDoc != null) {
+		citationDoc.PatentDate = patentDoc.Date2;
+		var msDiff = Date.parse(patentDoc.Date2) - Date.parse(citationDoc.Date2)
+		citationDoc.DayLag = msDiff/86400000 
+	  	db.citationsOld.save(citationDoc);
+	}
+});

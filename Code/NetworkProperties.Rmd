@@ -1,0 +1,36 @@
+---
+title: "Network Properties"
+output:
+  html_document: default
+  html_notebook: default
+---
+
+## Density
+Network density describes the portion of potential connections in a network to actual connections. 
+
+ - Potential connections is every previous node (because unidirectional connections with time) $$ \frac{n(n+1)}{2} $$
+ - Actual connections is simply a count of number of citations. 
+
+## Size
+Can refer to number of nodes (count patents) or sometimes number of edges (count citations). 
+
+## Average Degree
+The degree of a node is the number of edges connected to it. 
+This is the main thing we have already studied. 
+We can compare this to a random graph model where average degree is p(N-1) where p is the probability of two nodes connecting. 
+
+## Average path length (characteristic path length)
+The path length is the shortest path between a pair of nodes. The average therefore calculates this for all pairs of nodes and divides by the total number of pairs. 
+**This doesn't seem plausible to calculated**
+
+## Diameter
+This is the longest of all calculated shortest paths. 
+For the same reasons as above (having to caulcate every permutation of node distances 100000!) this also **not plausible**
+
+## Clustering Coefficient
+
+## Connectedness
+
+## Node Centrality
+
+## Node influentce

@@ -47,15 +47,17 @@ fit_distributions <- function(year, out_lab = "", bootstrap = NULL, degree_distr
     m_pois$setXmin(est_pois)
 
     # Plot distributions
-    par(mfrow = c(2,2))
-    par(cex = .5)
-    par(lwd = 2)
-    plot(m_pl, main = "power-law"); lines(m_pl, col="green") 
-    plot(m_ln, main = "log-normal"); lines(m_ln, col = "red") 
-    plot(m_exp, main = "exponential"); lines(m_exp, col="blue") 
-    plot(m_pois, main = "poisson"); lines(m_pois, col="orange") 
-    distFit.plot = recordPlot()
+    distFit.plot <- function(this) {
+        par(mfrow = c(2,2))
+        par(cex = .5)
+        par(lwd = 2)
+        plot(m_pl, main = "power-law"); lines(this$distributions$pl, col="green") 
+        plot(m_ln, main = "log-normal"); lines(this$distributions$ln, col = "red") 
+        plot(m_exp, main = "exponential"); lines(this$distributions$exp, col="blue") 
+        plot(m_pois, main = "poisson"); lines(this$distributions$pois, col="orange")  
+    }
     
+
     ## Finding p values via bootstrapping #######################
     if ("pl" %in% bootstrap) {
         bs_pl = bootstrap_p(m_pl, no_of_sims=2500, threads=8)
@@ -70,46 +72,70 @@ fit_distributions <- function(year, out_lab = "", bootstrap = NULL, degree_distr
     } else bs_ln = NULL
     
     # The xmin must be the same for both distributions so set it to the larger of the two
+    # So create new estimate with equal xmins (equal to the largest of the previous xmins)
+    m_ln2 = m_ln
+    m_pl2 = m_pl
+    
     x1 <- m_pl$getXmin()
     x2 <- m_ln$getXmin()
     xgreater <- ifelse(x1 > x2, x1, x2)
-
+    
     if (x1 > x2) {
-        m_ln$setXmin(xgreater)
-        est_ln = estimate_pars(m_ln)
-        m_ln$setPars(est_ln)
+        m_ln2$setXmin(xgreater)
+        est_ln2 = estimate_pars(m_ln2)
+        m_ln2$setPars(est_ln2)
+        est_pl2 = est_pl
     } else {
-        m_pl$setXmin(xgreater)
-        est_pl = estimate_pars(m_pl)
-        m_pl$setPars(est_pl)
+        m_pl2$setXmin(xgreater)
+        est_pl2 = estimate_pars(m_pl2)
+        m_pl2$setPars(est_pl2)
+        est_ln2 = est_ln
     }
     
     # Replot
     # Plot distributions
-    par(mfrow = c(2,2))
-    par(cex = .5)
-    par(lwd = 2)
-    plot(m_pl, main = "power-law"); lines(m_pl, col="green") 
-    plot(m_ln, main = "log-normal"); lines(m_ln, col = "red") 
-    plot(m_exp, main = "exponential"); lines(m_exp, col="blue") 
-    plot(m_pois, main = "poisson"); lines(m_pois, col="orange") 
-    distFit2.plot = recordPlot()
-    
-    comp_plln  <- compare_distributions(m_pl, m_ln)
-    comp_lnpl  <- compare_distributions(m_ln, m_pl)
+    distFit_equalXmin.plot <- function(this) {
+        par(mfrow = c(2,1))
+        par(cex = .5)
+        par(lwd = 2)
+        plot(m_pl, main = "power-law"); lines(this$distributions$pl_equalXmin, col="green") 
+        plot(m_ln, main = "log-normal"); lines(this$distributions$ln_equalXmin, col = "red") 
+    }
+    comp_plln  <- compare_distributions(m_pl2, m_ln2)
+    comp_lnpl  <- compare_distributions(m_ln2, m_pl2)
 
-    par(mfrow = c(1,1))
-    plot(comp_plln)
-    loglik.plot = recordPlot()
-    
     # Save results to file
-    ret <- list(distributions = list(m_exp, m_ln, m_pl, m_pois), 
-                par_estimates = list(est_exp, est_ln, est_pl, est_pois),
+    ret <- list(distributions = list(exp = m_exp, ln = m_ln, pl = m_pl, pois = m_pois, ln_equalXmin = m_ln2, pl_equalXmin = m_pl2), 
+                par_estimates = list(exp = est_exp, ln = est_ln, pl = est_pl, pois = est_pois, ln_equalXmin = est_ln2, pl_equalXmin = est_pl2),
                 boostraps = list(bs_pl, bs_ln),
                 comparisons = list(powerlaw = comp_plln, lognormal = comp_lnpl),
-                plots = list(distFit.plot, loglik.plot, distFit2.plot))
+                plots = list(distFit = distFit.plot, distFit_Xmin = distFit_equalXmin.plot))
 
     saveRDS(ret, file = paste0("Dat/order_fit_distributions", out_lab, year, ".rds"))
     
     return(ret)
 }
+
+# ¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬
+# LOOP THROUGH EACH YEAR ---------------------------------------------------------------------------------------
+# ¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬¬
+library(poweRlaw)
+datNew <- readRDS("Dat/orderFrequencies.rds")
+years <- 1976:2015
+pl <- list()
+pl_Other <- list()
+pl_Examiner <- list()
+for(i in seq_along(years)) {
+    yr <- years[i]
+    print(yr)
+    pl[[i]] <- fit_distributions(yr)
+    if (yr %in% 2001:2015) {
+        pl_Other[[i]] <- fit_distributions(yr, degree_distribution = datNew, var = "Other")
+        pl_Examiner[[i]] <- fit_distributions(yr, degree_distribution = datNew, var = "Examiner")
+    } else {
+        pl_Other[[i]] <- NULL
+        pl_Examiner[[i]] <- NULL
+    }
+}
+
+save(pl, pl_Other, pl_Examiner, file = "powerLawFits.rdata")

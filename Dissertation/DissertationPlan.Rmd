@@ -7,19 +7,27 @@ output: html_document
 
 ### Introduction
 ### Literature Review
-  - [Project-Preparation Literature Review](https://github.com/alunmeredith/MSC-Project/blob/master/Litrature/Report/review.pdf)
-  - [Planned Structure of Changes](https://github.com/alunmeredith/MSC-Project/blob/master/Dissertation/DissertationPlan.Rmd)
+  - [Project-Preparation Literature Review](https://github.com/alunmeredith/MSC-Project/blob/master/Deliverables/review.pdf)
+  - [Planned Structure of Changes](https://github.com/alunmeredith/MSC-Project/blob/master/Dissertation/LiteratureReivewStructure.md)
 
 ### Data Processing / pipeline
  - [Download datafiles from uspto website](https://github.com/alunmeredith/MSC-Project/blob/master/Code/Download_extract.R)
     - **107 Gb** of data covering the period of **1976 to 2001**. 
     - **2 Weeks of data missing from 2015** (denied download). This has very minimal in most of the analysis, mainly the count of patents published per year. It may have some biases and other effects so we can keep this in mind when looking at the citations. 
-    - DataFiles in **3 major formats** (and minor schema changes); text (1976-2001), sgml (2001-2004) and xml (2005-present), there are some relavent schema changes within formats for sgml and xml. 
+    - DataFiles in **3 major formats** (and minor schema changes); **text** (1976-2001), **sgml** (2001-2004) and **xml** (2005-present), there are some relavent schema changes within formats for sgml and xml. 
     - 1996 onlwards includes **list files** listing patents expected to be present. Sgml and XML are in the form of weekly files but for **2001-2013 concatonated files** for the whole year are also present, text format is in a single file. 
  - [Parse each datafile for relatvent information](https://github.com/alunmeredith/MSC-Project/blob/master/Code/Parse_File_statebased.R)
-    - The three different formats is the biggest issue 
- - (Parse_Directory3.R)
+    - This File contains a function which parses any of the raw datafiles and builds two tables (CSVs); one containing the patent information extracted and one containing the citation information extracted, so the citation information is a list of patent-citation pairs + additional citation information being recorded. The degree of each patent is also recorded at this point.  
+    - The three different formats is the biggest issue, each file must be parsed in the same structure so systematic differences don't exist. Therefore **one function parses all datatypes** with minimal variation based on type. This was the case with an earlier iteration which used existing libraries to parse xml causing systematic differences with the custom text parser. 
+    - The function written was written as **flexible** as possible, enabling new variables and changes in format to be accomadated easily. This was done by **linking tags in the data to actions**, such as "addCitationValue" which adds the value on this line to the current citation, or "flushPatent" which appends the current citation and patent information to the csv and building a new empty patent and citation vector. This means adding a new variable just means adding the relavent tags to the tags being searched linked to "addCitationValue". 
+    - To overcome the fact that identical tags are present within nested environments in the data to mean different things (think xml structure) we use a **state based** architecture which identifies which section of a patent it is in. I.e. changes state to "citation" when within the citation section in order to interpret dates effectively. 
+ - [Parse_Directory3.R](https://github.com/alunmeredith/MSC-Project/blob/master/Code/Parse_Directory3.R)
+    - This file contains a function to call *Parse_File_statebased()* appropriately for an entire year, assuming raw datafiles in the directory structure produced by the *Download_extract.R* script. If parsing is split into smaller files then it concatonates these into a single file for each year. 
  - (Cleaning.R)
  - (mongo_csv_import.bash)
  - (mongodbIndexes.js)
  - (orderCalc_mapReduce.js)
+ 
+### Reproducing Valverde
+
+### My additional Work
