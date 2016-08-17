@@ -1,7 +1,8 @@
 ---
 title: "Comparing Cited by Examiners to Cited by Other"
 output:
-  html_document: default
+  html_document: 
+    toc: yes
   html_notebook: default
   pdf_document: default
 ---
@@ -49,6 +50,7 @@ str(orderFrequencies)
 There are some differences (processingDifferences) between the order calculated through the citations using map reduce (Total2) and the order calculated while processing the data (Total).
 
 The average error is 0, which means all the citations each year are being processed in both methods. We can see that the errors largely alternate between positive and negative, namely that the differences may be one additional citation on one patent meaning one less on the adjacent patent. The errors are only present in the xml not the sgml years 2005 onwards and while increase over time this is likely in line with increasing number of patents. In 2015 there about 10% are effected. 
+
 ```{r processingDifferences, echo=F}
 orderFrequencies$processingDifferences <- orderFrequencies$Total - orderFrequencies$Total2
 summary(orderFrequencies %>% select(processingDifferences))
@@ -168,7 +170,7 @@ gg2 <- ggplot(dat2, aes(x = Year, y = Total)) +
 grid.arrange(gg1, gg2, ncol = 2)
 ```
  
- * The gradients of examiner and other vary because it is clearly not a power law but we are trying to fit it to one.
+ * The gradients of examiner and other vary because it is clearly not a power law but we are trying to fit it to one (see graph below). 
  * When the other is fitted to the start of the curve it appears to loosely follow the total. 
  * This is not the case with the examiner plot, which show much stronger resemblence to power laws. 
  * While the examiner gradients vary it could be said to loosely follow the shape of the total. 
@@ -190,8 +192,10 @@ par(mfrow = c(1,1))
 ## Power-law vs. log-normal
 
 In this section we compare how well power law fits perform relative to log-normal fits of the data. 
-We first consider a sample year and use the "poweRlaw" package to fit power-law, log-normal, exponential and poisson distributions to the "Examiner" and "Other" distributions seperately. 
-```{r e}
+We first consider a sample year and use the "poweRlaw" package to fit power-law, log-normal, exponential and poisson distributions to the "Examiner" and "Other" distributions seperately. In the below plots we use 2001 as an example year and fit a variety of discrite distibutions to the distribution of orders. 
+
+#### Examiner
+```{r Fitting Distributions: Examiner}
 par(mfrow = c(2,2))
     par(cex = .5)
     par(lwd = 2)
@@ -213,7 +217,9 @@ par(mfrow = c(1,1))
 
 * While none of the distributions catch the shape of the tail the log-normal seems to most closely relate to the distribution with poisson clearly being false. Exponential capturing the start of the distribution and power-law capturing the center of the distribution. 
  * This therefore could both be a power-law with exponential cut-off (e.g. extended power-law) or a log-normal. 
-```{r f}
+
+#### Other
+```{r Fitting Distributions: Other}
 par(mfrow = c(2,2))
     par(cex = .5)
     par(lwd = 2)
@@ -239,7 +245,9 @@ par(mfrow = c(1,1))
  
 ## Scatterplot between orderOther and orderExaminer
 
-```{r load scatterplot data, eval=FALSE, include=FALSE}
+In this section we consider the relationship between Other and Examiner citations through a scatterplot and their possible correlation. 
+
+```{r load scatterplot data}
 if (file.exists("Dat/orderScatterplotData.rds")) {
     scatterplotData <- readRDS("Dat/orderScatterplotData.rds")
 } else {
@@ -259,20 +267,21 @@ if (file.exists("Dat/orderScatterplotData.rds")) {
 
 ```
 
-```{r scatterplots, eval=FALSE, include=FALSE}
-(gg <- ggplot(data = scatterplotData, aes(x = Examiner, y = Other)) +
+```{r scatterplots}
+gg <- ggplot(data = scatterplotData, aes(x = Examiner, y = Other)) +
     geom_jitter(alpha = 1/20, shape = 20, width = 1, height = 1) + 
     theme_bw()
- ) 
 
-(gg1 <- gg + scale_x_log10() + scale_y_log10() + annotation_logticks())
 
+gg1 <- gg + scale_x_log10() + scale_y_log10() + annotation_logticks()
+
+grid.arrange(gg, gg1, ncol = 2)
 png("Figures/orderScatterplot.png", height = 540, width = 960); gg; dev.off()
 png("Figures/orderScatterplotLog.png", height = 540, width = 960); gg1; dev.off()
 save(gg, gg1, file = "Figures/orderScatterplots.rdata")
 ```
 
-```{r pearson correlation coefficient, eval=FALSE, include=FALSE}
+```{r pearson correlation coefficient}
 cor(scatterplotData)
 
 datlog10 <- log10(scatterplotData)
@@ -281,3 +290,83 @@ datlog10 <- datlog10[!is.infinite(datlog10$Other),]
 cor(datlog10)
 ```
 
+## Comparing average of order of Other for given Examiner and vice versa
+
+ * Below we see the average of other for a given examiner, followed by vice versa, followed by a repitition using median instead of mean. 
+ * We use 3 different bins (0 binning, bin size of 20 and bin size of 40)
+ * We Expect to see something flat
+    * While its hard to see a pattern it doesn't necessarily look flat when looking at the mean
+    * I hypothesised because this is a heavy tailed distribution the mean is biased so we look at the median instead
+    * The median shows distributions that do indeed look flat
+    
+```{r}
+scatterplotData %>% group_by(Examiner) %>% summarise(meanOther = mean(Other)) %>% plot(pch = 20)
+
+dat <- scatterplotData %>% 
+    arrange(Examiner) %>% 
+    mutate(bins = cut(Examiner, breaks = seq(0,max(Examiner), by = 20), include.lowest = T, right = F)) %>% 
+    group_by(bins) %>% 
+    summarise(meanOther = mean(Other))
+plot(dat$bins, dat$meanOther)
+
+dat <- scatterplotData %>% 
+    arrange(Examiner) %>% 
+    mutate(bins = cut(Examiner, breaks = seq(0,max(Examiner), by = 40), include.lowest = T, right = F)) %>% 
+    group_by(bins) %>% 
+    summarise(meanOther = mean(Other))
+plot(dat$bins, dat$meanOther)
+```
+
+```{r}
+scatterplotData %>% group_by(Other) %>% summarise(meanOther = mean(Examiner)) %>% plot(pch = 20)
+
+dat <- scatterplotData %>% 
+    arrange(Other) %>% 
+    mutate(bins = cut(Other, breaks = seq(0,max(Other), by = 20), include.lowest = T, right = F)) %>% 
+    group_by(bins) %>% 
+    summarise(meanExaminer = mean(Examiner))
+plot(dat$bins, dat$meanExaminer)
+
+dat <- scatterplotData %>% 
+    arrange(Other) %>% 
+    mutate(bins = cut(Other, breaks = seq(0,max(Other), by = 40), include.lowest = T, right = F)) %>% 
+    group_by(bins) %>% 
+    summarise(meanExaminer = mean(Examiner))
+plot(dat$bins, dat$meanExaminer)
+```
+
+```{r}
+scatterplotData %>% group_by(Examiner) %>% summarise(medianOther = median(Other)) %>% plot(pch = 20)
+
+dat <- scatterplotData %>% 
+    arrange(Examiner) %>% 
+    mutate(bins = cut(Examiner, breaks = seq(0,max(Examiner), by = 20), include.lowest = T, right = F)) %>% 
+    group_by(bins) %>% 
+    summarise(medianOther = median(Other))
+plot(dat$bins, dat$medianOther)
+
+dat <- scatterplotData %>% 
+    arrange(Examiner) %>% 
+    mutate(bins = cut(Examiner, breaks = seq(0,max(Examiner), by = 40), include.lowest = T, right = F)) %>% 
+    group_by(bins) %>% 
+    summarise(medianOther = median(Other))
+plot(dat$bins, dat$medianOther)
+```
+
+```{r}
+scatterplotData %>% group_by(Other) %>% summarise(medianOther = median(Examiner)) %>% plot(pch = 20)
+
+dat <- scatterplotData %>% 
+    arrange(Other) %>% 
+    mutate(bins = cut(Other, breaks = seq(0,max(Other), by = 20), include.lowest = T, right = F)) %>% 
+    group_by(bins) %>% 
+    summarise(medianExaminer = median(Examiner))
+plot(dat$bins, dat$medianExaminer)
+
+dat <- scatterplotData %>% 
+    arrange(Other) %>% 
+    mutate(bins = cut(Other, breaks = seq(0,max(Other), by = 40), include.lowest = T, right = F)) %>% 
+    group_by(bins) %>% 
+    summarise(medianExaminer = median(Examiner))
+plot(dat$bins, dat$medianExaminer)
+```

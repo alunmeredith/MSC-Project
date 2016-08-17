@@ -1,0 +1,67 @@
+---
+title: "Advice collection"
+output: html_document
+---
+# Resources
+
+ * [Module notes page](https://secure.ecs.soton.ac.uk/notes/comp6200/)
+ * [Sample Report](https://secure.ecs.soton.ac.uk/notes/comp6200/documents/ms8v07.pdf)
+ * [Structure](https://secure.ecs.soton.ac.uk/notes/comp6200/documents/MScDissertationFormat.pdf)
+ * [Mark Scheme](https://secure.ecs.soton.ac.uk/notes/comp6200/documents/MARKING_CRITERIA.pdf)
+ * [Formal Procedures](https://secure.ecs.soton.ac.uk/notes/comp6200/documents/Final%20MSC%20Project%20Proceduders%20and%20deadlines.pdf)
+ * [Dissertation Writing Slides](https://secure.ecs.soton.ac.uk/notes/comp6200/documents/MScDissertationWriting2.pdf)
+ * [Project Notes Summary](https://secure.ecs.soton.ac.uk/notes/comp6200/documents/MSCSUMMARYNOTES.pdf)
+ * [Ants Report](file:///D:/Documents/OneDrive/Documents/MSci%20Report.pdf)
+
+
+### Loose outline advice
+
+ * Abstract
+    * Written last
+    * Describes project quickly on its own
+        * What you did
+        * Why you did it
+        * How sucessful was it
+    * Must include numbers compared to other numbers
+ * Background
+    * Explain your project, why do it an dits foundations
+    * Literature Review
+    * Summary of Related work
+ * Research
+    * All references should be to sections in the backgorund
+    * Explains what you did and what you found out
+    * No conclusions. 
+    * Order Experimenmts with results ExpA, ResA, ExpB, ResB
+    * Include all your work, don't leave things out which are not good or are simple
+ * Finish
+    * Comparison / Review of your work
+        * How did A compare to B
+        * How did they compare to other work
+    * Further Work
+        * What would you do in the next month to make it better
+        * What would you do in the next year/10years to make it better
+    * Conclusion
+        * What did I achieve / what does it mean
+        * Again only refer to background section
+
+### Marking Scheme
+
+ * Project management & planning
+ * Technical approach
+ * Testing and evalutatoin
+ * Avhievement and challange
+ * Writing and literature
+ * Understanding
+
+You need written **evidence** of each area to get the marks. 
+
+### Misc Advice
+
+ * Be clear what is your work
+    * Best to do this by writing a background chapter for other people's work and use the rest for yours. 
+ * Get your report read. If someone can't understand it without help then it needs to be better. 
+ * Don't waffle or add in pointless diagrams
+ * Get the chapter and table of contents to your supervisor at least 2 weeks before the deadline. 
+
+Write a detailed table of contents. 
+Write the Results/Work chapter

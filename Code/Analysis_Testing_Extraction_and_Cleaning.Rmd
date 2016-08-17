@@ -135,11 +135,11 @@ for (yr in yrs) {
     }
     lst.full[[make.names(yr)]] <- lst.cat
 }
-saveRDS(lst.full, "lst.rda")
+saveRDS(lst.full, "Dat/lst.rda")
 ```
 
 ```{r lst file stats}
-lst.full <- readRDS("lst.rda")
+lst.full <- readRDS("Dat/lst.rda")
 yrs <- sapply(names(lst.full), function(x) as.numeric(substring(x, 2)))
 npats <- sapply(lst.full, length)
 lst.df <- data.frame(year = yrs, count = npats)
@@ -227,7 +227,7 @@ Sources of NA or missing values:
  * Parsing, parsing date as an integer when reading the data creates a small number of NA values. 
 
 
-```{r save files, include=FALSE}
+```{r save files, eval=FALSE, include=FALSE}
 write_csv(sgml2001, "../DataFiles/SampleFiles/patent/2001clean.csv")
 write_csv(txt2001, "../DataFiles/SampleFiles/patent/2001txtclean.csv")
 png("Figures/patentsDiff.png"); gg_patentsDiff; dev.off()
