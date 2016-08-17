@@ -157,17 +157,76 @@ $(document).ready(function () {
 <li>This file contains a function to call <em>Parse_File_statebased()</em> appropriately for an entire year, assuming raw datafiles in the directory structure produced by the <em>Download_extract.R</em> script. If parsing is split into smaller files then it concatonates these into a single file for each year.</li>
 </ul>
 </div>
-<div id="cleaning.r" class="section level5">
-<h5>(Cleaning.R)</h5>
+<div id="analysis-of-cleaning-code-results" class="section level5">
+<h5>Analysis of Cleaning (<a href="https://github.com/alunmeredith/MSC-Project/blob/master/Code/Analysis_Testing_Extraction_and_Cleaning.Rmd">Code</a>, <a href="https://github.com/alunmeredith/MSC-Project/blob/master/Code/Analysis_Testing_Extraction_and_Cleaning.pdf">Results</a>)</h5>
+<ul>
+<li>This is the first analysis file but put in the data pipeline because it is an analysis of the parsing section.</li>
+<li>Tests to find differences between sgml and txt through 2001 which has copies of both.
+<ul>
+<li>Some entries present in txt not present in sgml.</li>
+<li>No entries in sgml not present in txt.</li>
+<li>This difference is very small 184078 vs 184173.</li>
+</ul></li>
+<li>Tests to find differences between parsed patent counts, those produced by a uspto summary page and those produced by the raw data lst files.
+<ul>
+<li>No differences until 2008. After this time we parse more patents than found in uspto summary statistics.</li>
+<li>And less than the lst files.</li>
+<li>Again these are small maxing at around 2000 / ~ 300000 in 2014.</li>
+<li>Except 1976 and 2015.
+<ul>
+<li>2015 because 2 months of data couldn’t be downloaded.</li>
+<li>1976 for unknown reasons. (data doesn’t start in january?)</li>
+<li>These differences are noted and kept in mind but thought unlikely to cause systematic differences in the citations for the analysis we are doing. (think about this further)</li>
+</ul></li>
+</ul></li>
+<li>Looks at cleaning steps necessary and sources of NA values
+<ul>
+<li>Removing duplicated entires.</li>
+<li>Cleaning variables so they both match eachother (patent vs citation) and the website (patent numberse)
+<ul>
+<li>Removing extra digit at end of txt patent numbers.</li>
+<li>Removing whitespace, punctuation (.), filler 0s so they match patent numbers on website.</li>
+</ul></li>
+<li>Sources of NAs
+<ul>
+<li>There are very few NAs produced</li>
+<li>Errors parsing the raw data, primarily because that field was missing in the raw data, in our sample dataset this occured &lt; 7 times. (these values appear to be errors and are all of the format “XXX 00”, typically 0-10 per year)</li>
+<li>Parsing the date into posixct causes 756 NAs, again due to the format of value in the date.
+<ul>
+<li>Although there are more errors here it is ok because we retain Dat in addition to Date2 and 700 is still only about .1% of that year.</li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul>
 </div>
+<div id="cleaning-the-data-cleaning.r" class="section level4">
+<h4>Cleaning The Data <a href="https://github.com/alunmeredith/MSC-Project/blob/master/Code/Cleaning.R">Cleaning.R</a></h4>
+<ul>
+<li>Makes sure entries are unique</li>
+<li>Makes sure there are (correct) column names</li>
+<li>Parses dates to “posixct” format although keeps the original numeric date format (YYYYMMDD)</li>
+<li>Ensures that every patent is of a valid format.
+<ul>
+<li>Starts with “D|RE|PP|H| |T”</li>
+<li>Has no 0s, whitespace or punctuation (primarily either at start of code or between the letters above and numeric code)</li>
+<li>If extracted from a txt file remove an extra digit at the end of the patent number.</li>
+</ul></li>
+<li>Puts the cleaned file in a directory structure identical to the “Processed” directory that parse_directory_3. Directory is called “Cleaned.”</li>
+<li>Produces a concatonated patent file.
+<ul>
+<li>Just small enough to fit in memory.</li>
+<li>Makes some of the processing easier.</li>
+</ul></li>
+</ul>
 <div id="mongo_csv_import.bash" class="section level5">
 <h5>(mongo_csv_import.bash)</h5>
 </div>
 <div id="mongodbindexes.js" class="section level5">
 <h5>(mongodbIndexes.js)</h5>
-<ul>
-<li>(orderCalc_mapReduce.js)</li>
-</ul>
+</div>
+<div id="ordercalc_mapreduce.js" class="section level5">
+<h5>(orderCalc_mapReduce.js)</h5>
+</div>
 </div>
 </div>
 <div id="analysis" class="section level2">

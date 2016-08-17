@@ -25,7 +25,45 @@ output: html_document
 ##### Parse each directory / year ([Parse_Directory3.R](https://github.com/alunmeredith/MSC-Project/blob/master/Code/Parse_Directory3.R))
  - This file contains a function to call *Parse_File_statebased()* appropriately for an entire year, assuming raw datafiles in the directory structure produced by the *Download_extract.R* script. If parsing is split into smaller files then it concatonates these into a single file for each year. 
  
-##### Cleaning The Data [Cleaning.R](https://github.com/alunmeredith/MSC-Project/blob/master/Code/Cleaning.R), Analysis of Cleaning [Code](https://github.com/alunmeredith/MSC-Project/blob/master/Code/Analysis_Testing_Extraction_and_Cleaning.Rmd), [Results]()
+##### Analysis of Cleaning ([Code](https://github.com/alunmeredith/MSC-Project/blob/master/Code/Analysis_Testing_Extraction_and_Cleaning.Rmd), [Results](https://github.com/alunmeredith/MSC-Project/blob/master/Code/Analysis_Testing_Extraction_and_Cleaning.pdf))
+ - This is the first analysis file but put in the data pipeline because it is an analysis of the parsing section. 
+ - Tests to find differences between sgml and txt through 2001 which has copies of both. 
+    - Some entries present in txt not present in sgml.
+    - No entries in sgml not present in txt. 
+    - This difference is very small 184078 vs 184173. 
+ - Tests to find differences between parsed patent counts, those produced by a uspto summary page and those produced by the raw data lst files. 
+     - No differences until 2008. 
+     After this time we parse more patents than found in uspto summary statistics. 
+     - And less than the lst files. 
+     - Again these are small maxing at around 2000 / ~ 300000 in 2014. 
+     - Except 1976 and 2015.
+        - 2015 because 2 months of data couldn't be downloaded. 
+        - 1976 for unknown reasons. (data doesn't start in january?)
+        - These differences are noted and kept in mind but thought unlikely to cause systematic differences in the citations for the analysis we are doing. (think about this further)
+ - Looks at cleaning steps necessary and sources of NA values
+    - Removing duplicated entires. 
+    - Cleaning variables so they both match eachother (patent vs citation) and the website (patent numberse)
+        - Removing extra digit at end of txt patent numbers.
+        - Removing whitespace, punctuation (.), filler 0s so they match patent numbers on website. 
+    - Sources of NAs
+        - There are very few NAs produced
+        - Errors parsing the raw data, primarily because that field was missing in the raw data, in our sample dataset this occured < 7 times. (these values appear to be errors and are all of the format "XXX  00", typically 0-10 per year)
+        - Parsing the date into posixct causes 756 NAs, again due to the format of value in the date. 
+            - Although there are more errors here it is ok because we retain Dat in addition to Date2 and 700 is still only about .1% of that year. 
+
+#### Cleaning The Data [Cleaning.R](https://github.com/alunmeredith/MSC-Project/blob/master/Code/Cleaning.R)
+ - Makes sure entries are unique
+ - Makes sure there are (correct) column names
+ - Parses dates to "posixct" format  although keeps the original numeric date format (YYYYMMDD)
+ - Ensures that every patent is of a valid format. 
+    - Starts with "D|RE|PP|H| |T"
+    - Has no 0s, whitespace or punctuation (primarily either at start of code or between the letters above and numeric code)
+    - If extracted from a txt file remove an extra digit at the end of the patent number. 
+ - Puts the cleaned file in a directory structure identical to the "Processed" directory that parse_directory_3. Directory is called "Cleaned."
+ - Produces a concatonated patent file. 
+    - Just small enough to fit in memory.
+    - Makes some of the processing easier. 
+    
 ##### (mongo_csv_import.bash)
 ##### (mongodbIndexes.js)
 ##### (orderCalc_mapReduce.js)

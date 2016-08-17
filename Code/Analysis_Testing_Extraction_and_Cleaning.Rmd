@@ -34,12 +34,14 @@ parse_directory(2001, doc_type = "sgml", write.dir = "../DataFiles/SampleFiles/2
 First we apply the basic cleaning of __removing duplicated entries__ and adding a date measure converted into __posixct date format__. 
 ```{r read and basic clean data, results='hold'}
 # sgml
-sgml2001 <- read_csv("../DataFiles/SampleFiles/patent/2001.csv", col_names = c("Patent", "Date", "Order"))
+sgml2001 <- read_csv("../DataFiles/SampleFiles/patent/2001.csv", 
+                     col_names = c("Patent", "Date", "Order"))
 sgml2001 <- unique(sgml2001)
 sgml2001$Date2 <- lubridate::ymd(sgml2001$Date)
 
 # Txt
-txt2001 <- read_csv("../DataFiles/Processed/patent/2001.csv", col_names = c("Patent", "Date", "Order"))
+txt2001 <- read_csv("../DataFiles/Processed/patent/2001.csv", 
+                    col_names = c("Patent", "Date", "Order"))
 txt2001 <- unique(txt2001)
 txt2001$Date2 <- lubridate::ymd(txt2001$Date)
 
@@ -103,12 +105,16 @@ our_data <- read_csv("../DataFiles/Cleaned/patent_cat.csv", progress = FALSE)
 
 ```{r summarise patent counts}
 our_data$Year <- lubridate::year(our_data$Date2)
-our_data_summary <- our_data %>% group_by(Year) %>% summarise(count = n()) %>% filter(Year %in% 1976:2015)
+our_data_summary <- our_data %>% group_by(Year) %>% 
+    summarise(count = n()) %>% filter(Year %in% 1976:2015)
 ```
 
 Unfortunately the data is not easily parsable so has been hard copied from the website, we can compare this with our data. 
 ```{r uspto summary stats}
-yearcounts <- rev(c(325979,326032,302948,276788,247716,244341,191927,185224,182899,196405,157718,181299,187012,184375,183970,175979,169085,163142,124069,121696,113834,113587,109746,107394,106696,99077,102533,84272,89385,76862,77245,72650,61982,63276,71064,66170,52413,70514,69781,75388))
+yearcounts <- rev(c(325979,326032,302948,276788,247716,244341,191927,185224,182899,196405,
+                    157718,181299,187012,184375,183970,175979,169085,163142,124069,121696,
+                    113834,113587,109746,107394,106696,99077,102533,84272,89385,76862,
+                    77245,72650,61982,63276,71064,66170,52413,70514,69781,75388))
 ```
 
 ### Comparing patent counts to uspto list files 
