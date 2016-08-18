@@ -65,11 +65,25 @@ output:
 ### Reproduce Valverde
  
  - Number of patents vs. time
+    - Cumulative number of patents vs time. 
+    - Fitting the distribution (power-law vs exponential)
  - Order of citations vs. time
-
+    - Fitting the distribution (pl, exp, pois, log-normal)
 
 ### Comparing Cited by Examiner to Cited by Other
-
+ - Splitting the data into two (Cited by Examiner and Cited by Other)
+ - Repeat the above for the two seperate datasets
+    - Patents vs. time
+        - Cumulative
+        - Fitting distribution
+    - Order of citations vs. time
+        - Fitting the distribution
+ - Correlation 
+    - Scatterplot
+    - Pearson correlation coefficient
+    - Average of A for given B. 
+ - Mean degree by year
+ - 
 ## Resutls
 
 ## Conclusion

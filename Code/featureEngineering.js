@@ -247,29 +247,49 @@ print("Processed All -------------------------------------------")
 // Computes Patent Link Time and Citation Link Time and difference between them for each Citation
 // --------------------------------------------------------------------------------------------
 
-cursor = db.citations.find({PatentLinkTime: {$exists: false}}).sort({PatentDate})
-cursor = db.citations.find({CitationLinkTime: {$exists: false}}).sort({Date})
-
-var totalPatents = db.patentsOld.count();
-var cursor = db.patentsOld.find({PatentLinkTime: {$exists: true}});
-var PatentLinkTime =  0 //cursor.sort({PatentLinkTime: -1}).limit(1).next().PatentLinkTime;
-var processed = 0; //cursor.count();
-print("Already Processed", processed, "  Max LinkTime: ", PatentLinkTime)
+// PatentLinkTime
+var totalCitations = db.test.count();
+var PatentLinkTime = 0;
+var processed = 0;
 var then = new Date();
-db.patentsOld.find().noCursorTimeout().forEach(function (patentDoc){ // {PatentLinkTime: {$exists: false}}
-	patentDoc.PatentLinkTime = PatentLinkTime;
-	PatentLinkTime += patentDoc.Order;
-	db.patentsOld.save(patentDoc);
-	
+db.test.find({PatentLinkTime: {$exists: false}}).sort({PatentDate: 1}).noCursorTimeout().forEach(function(citation) {
+	PatentLinkTime += 1;
+	citation.PatentLinkTime = PatentLinkTime;
+	db.test.save(citation);
+
 	processed += 1;
 	if (processed % 10000 == 0) {
 		now = new Date();-
-		print("Processed: ", processed, "/", totalPatents);
-		print("Time Remaining: ", (totalPatents - processed) * (now - then)/(10000*1000*3600));
+		print("Processed: ", processed, "/", totalCitations);
+		print("Time Remaining: ", (totalCitations - processed) * (now - then)/(10000*1000*3600));
 		then = now;
 	};
 });
-print("Processed All -------------------------------------------");
+
+print("Final link time = ", PatentLinkTime);
+
+// CitationLinkTime & Diff
+var totalCitations = db.test.count();
+var CitationLinkTime = 0;
+var processed = 0;
+var then = new Date();
+db.test.find({CitationLinkTime: {$exists: false}}).sort({Date: 1}).noCursorTimeout().forEach(function(citation) {
+	CitationLinkTime += 1;
+	citation.CitationLinkTime = CitationLinkTime;
+	citation.linkDiff = CitationLinkTime - citation.PatentLinkTime;
+	db.test.save(citation);
+
+	processed += 1;
+	if (processed % 10000 == 0) {
+		now = new Date();-
+		print("Processed: ", processed, "/", totalCitations);
+		print("Time Remaining: ", (totalCitations - processed) * (now - then)/(10000*1000*3600));
+		then = now;
+	};
+});
+
+print("Final Citation link time = ", CitationLinkTime);
+
 
 
 // ---------------------------------------------------------------------------

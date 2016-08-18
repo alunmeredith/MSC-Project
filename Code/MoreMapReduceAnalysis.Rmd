@@ -5,28 +5,35 @@ output:
   html_notebook: default
 ---
 
-```{r libraries}
+```{r libraries, echo=F, message=FALSE, warning=F}
 library(readr)
 library(dplyr)
 library(lubridate)
+library(ggplot2)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
 ```
 
 
-```{r load}
+```{r load, message=F, warning=FALSE}
 data <- read_csv("../DataFiles/Cleaned/patent_cat.csv")
 data$Year <- year(data$Date2)
-```
+dsum <- data %>% group_by(Year) %>% summarise(av_degree = sum(Order) / n())
 
-```{r}
 dat <- readRDS("Dat/orderFrequencies.rds")
-
 dat <- dat %>% group_by(Year) %>% summarise(av_degree = sum(Total2 * Order) / sum(Total2), av_degree_Other = sum(Other * Order) / sum(Other), av_degree_Examiner = sum(Examiner * Order) / sum(Examiner))
-plot(dat$Year, dat$av_degree, ylim = c(0,50))
-points(dat$Year, dat$av_degree_Other, col = "blue")
-points(dat$Year, dat$av_degree_Examiner, col = "red")
-```
-```{r}
+dsum <- full_join(dsum %>% filter(Year %in% 1976:2000), dat)
 
+(gg <- ggplot(dsum, aes(x = Year)) +
+    geom_point(aes(y = av_degree, col = "Total")) +
+    geom_point(aes(y = av_degree_Other,  col = "Other")) +
+    geom_point(aes(y = av_degree_Examiner, col = "Examiner")) +
+    theme_bw() +
+    scale_color_manual(values = c("Other" = "blue", "Examiner" = "red", "Total" = "black")) +
+    theme(legend.title=element_blank(), legend.position = c(0.1,0.8)))
+
+png("Figures/av_degree_vs_year.png"); gg; dev.off()
 ```
+
 
 # Aging of patents

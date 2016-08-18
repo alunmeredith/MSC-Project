@@ -102,3 +102,35 @@ output: html_document
     - Count frequencies of each of these orders and plot. (mapReduce)
     
 ## Analysis
+
+#### Reproducing Valverde ([Code](https://github.com/alunmeredith/MSC-Project/blob/master/Code/Analysis_Reproducing_Valverde.Rmd), [Results](https://github.com/alunmeredith/MSC-Project/blob/master/Code/Analysis_Reproducing_Valverde.pdf))
+ - This script tries to reproduce two early plots in Valverde et. al's paper "Topology and Evolution of Technology Innovation Networks". 
+    1. Number of patents varying over time (along with a cumulative log-log graph which they make a linear fit to)
+    2. Degree distribution for a set of years. 
+ 1. We reproduce the general shape of their graph, which also matches uspto summary statistics and lst files.
+    - There may be some small variations we can't quite identify. 
+    - The cumulative plot is a bit dodgy
+        - Clearly not a straight line (show that they probably were only fitting a subset of the data). In addition the data deviates from this fit in the "future years" after their data ends. 
+ 2. We find a similar phenomenon to valverde. 
+    - Different gradients, we believe they didn't include foreign patent citations whereas we have. 
+    - Absence of a "peak" i.e. starts high at 1 patent. 
+        - Hard to understand the source of this difference but having a peak makes more logical sense. 
+
+#### Fitting patents per year ([Code](https://github.com/alunmeredith/MSC-Project/blob/master/Code/Analysis_fitting_patents_cumdist.Rmd), [Results](https://github.com/alunmeredith/MSC-Project/blob/master/Code/Analysis_fitting_patents_cumdist.pdf))
+ - As said before we don't agree with their power law fit. 
+ - We try exponential fit
+    - Show p values and R-squared for each
+    - Show plots of each and how exponential fit seems a lot better. 
+    
+#### Fitting degree distribution ([Code](https://github.com/alunmeredith/MSC-Project/blob/master/Code/Analysis_fitting_degree_distribution.Rmd), [Results](https://github.com/alunmeredith/MSC-Project/blob/master/Code/Analysis_fitting_degree_distribution.pdf))
+ - Evaluate the underlyind distribution of the overall dataset. 
+ - Compare pois, exp, power law and log-normal. 
+ - Using methods of Newman paper, through 'poweRlaw' package. 
+    - null hypothesis of equal distances from distribution. 
+    - p values based on log-likelihood ratio (if null hypothesis is true this is normally distributed)
+
+#### Cited by Examiner Vs. Other: Order Analysis ([Code](https://github.com/alunmeredith/MSC-Project/blob/master/Code/OrderAnalysisWithCitedBy2.Rmd), [Results](https://github.com/alunmeredith/MSC-Project/blob/master/Code/OrderAnalysisWithCitedBy2.pdf))
+
+#### Mean Degree per year ([Code](https://github.com/alunmeredith/MSC-Project/blob/master/Code/MoreMapReduceAnalysis.Rmd), [Results](https://github.com/alunmeredith/MSC-Project/blob/master/Code/MoreMapReduceAnalysis.pdf))
+ - Mean degree per year
+    - Shows that the Examiner mean degree stays fairly constant but 
