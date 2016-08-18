@@ -1,10 +1,10 @@
 ---
 title: "Comparing Cited by Examiners to Cited by Other"
 output:
-  html_document: 
-    toc: yes
-  html_notebook: default
   pdf_document: default
+  html_notebook: default
+  html_document:
+    toc: yes
 ---
 
 ```{r setup, echo=FALSE, message=FALSE}
@@ -267,7 +267,7 @@ if (file.exists("Dat/orderScatterplotData.rds")) {
 
 ```
 
-```{r scatterplots}
+```{r scatterplots, eval=FALSE, include=FALSE}
 gg <- ggplot(data = scatterplotData, aes(x = Examiner, y = Other)) +
     geom_jitter(alpha = 1/20, shape = 20, width = 1, height = 1) + 
     theme_bw()

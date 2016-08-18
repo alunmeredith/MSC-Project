@@ -33,4 +33,4 @@ For the same reasons as above (having to caulcate every permutation of node dist
 
 ## Node Centrality
 
-## Node influentce
+## Node influence
