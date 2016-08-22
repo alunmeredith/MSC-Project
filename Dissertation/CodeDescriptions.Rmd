@@ -130,7 +130,40 @@ output: html_document
     - p values based on log-likelihood ratio (if null hypothesis is true this is normally distributed)
 
 #### Cited by Examiner Vs. Other: Order Analysis ([Code](https://github.com/alunmeredith/MSC-Project/blob/master/Code/OrderAnalysisWithCitedBy2.Rmd), [Results](https://github.com/alunmeredith/MSC-Project/blob/master/Code/OrderAnalysisWithCitedBy2.pdf))
+ - This script uses the feature engineering from mongodb to split data into Cited by Examiners and Cited by Other. (Also computes total)
+ - We compare the two measures of "total".
+    - We see that there are many small differences
+    - The differences increase over time, start in 2004. 
+    - I think these are differences in 1. 
+    *** Todo look up some of these different patents and see which is at fault. 
+ - Order distribution.   
+    - Examiner has smaller range
+    - Larger frequences at low orders
+    - Seems better fit for power law
+ - Change in power law gradient over time
+    - See that gradient has been dropping by large amount ver time
+    - Generally "other" follows the total very closely
+        - flickers between two areas. Because it is fitting to different parts of the curve. 
+    - Examiner may be following parallel to it but varies a lot more so its hard to tell.  
+ - Power-law vs. log-normal
+    - Two years shows how power-law is fitting different parts of the curve for Other. 
+    - Shows log-normal as a good fit for Examiner. (0.999999999999994)
+    - Power-law is a better fit for Lther (0.96)
+ - Scatterplot
+    - Scatterplot Other/Examiner orders.
+        - No real correlation (cor = -0.0023) 
+    - Another plot for log-log
+        - Add random noise (width 0.5, height 0.5) in order to smooth over the discrete data.
+        No real correlation (-0.033)
+ - Mean of A vs given of B
+    - Plot the mean values of Other for a given value of Examiner.
+    - Bin the data and plot again
+        - Shows very strange results hard to say there is a pattern. 
+        - Possibly due to small numbers of large values biasing
+            -  Plot median as well, this is much flatter (what is expected for no correlation)
+            - Flattness varies more for higher order as number of datapoints decreases.
 
 #### Mean Degree per year ([Code](https://github.com/alunmeredith/MSC-Project/blob/master/Code/MoreMapReduceAnalysis.Rmd), [Results](https://github.com/alunmeredith/MSC-Project/blob/master/Code/MoreMapReduceAnalysis.pdf))
  - Mean degree per year
-    - Shows that the Examiner mean degree stays fairly constant but 
+    - Shows that the Examiner mean degree stays fairly constant but Other increass at a much higher rate. 
+    - Other responsible for almost all changes that we have data for. 

@@ -12,6 +12,7 @@ knitr::opts_chunk$set(results = 'hold')
 knitr::opts_chunk$set(warning = FALSE)
 knitr::opts_chunk$set(echo = FALSE)
 
+library(fBasics)
 library(dplyr)
 library(ggplot2)
 library(rmongodb)
@@ -184,36 +185,107 @@ for (i in seq_along(pl_Other)) {
                   pl_Other[[i]]$distributions$pl$getPars())
     vecOther <- c(vecOther, new)
 }
-years <- 1976:2015
-dat <- data.frame(Year = years, Total = vec, Other = vecOther, Examiner = vecExaminer)
-gg1 <- ggplot(dat, aes(x = Year, y = Total)) +
-    geom_point(aes(colour = "total")) +
-    geom_point(aes(y = Other, colour = "other")) +
-    geom_point(aes(y = Examiner, colour = "examiner")) +
-    scale_color_manual(breaks = c("total", "other", "examiner"),
-                       values = c("red", "blue", "green")) + 
-    theme_bw() +
-    theme(legend.position = c(0.3, 0.2), legend.title = element_blank())
 
-dat2 <- dat %>% filter(Year > 2000)
-gg2 <- ggplot(dat2, aes(x = Year, y = Total)) +
-    geom_point(aes(colour = "total")) +
-    geom_point(aes(y = Other, colour = "other")) +
-    geom_point(aes(y = Examiner, colour = "examiner")) +
-    scale_color_manual(breaks = c("total", "other", "examiner"),
-                       values = c("red", "blue", "green")) + 
-    theme_bw() +
-    theme(legend.position = c(0.8, 0.8), legend.title = element_blank())
-
-grid.arrange(gg1, gg2, ncol = 2)
 ```
- 
+
  * The gradients of examiner and other vary because it is clearly not a power law but we are trying to fit it to one (see graph below). 
  * When the other is fitted to the start of the curve it appears to loosely follow the total. 
  * This is not the case with the examiner plot, which show much stronger resemblence to power laws. 
  * While the examiner gradients vary it could be said to loosely follow the shape of the total. 
  * An interesting conclusion here is that the total is dominated by the other which doesn't follow a power law in the years we have the data for, so the total also is probably not followint a power law for these earlier years. 
- 
+```{r}
+years <- 1976:2015
+dat <- data.frame(Year = years, Total = -vec, Other = vecOther, Examiner = vecExaminer)
+gg1 <- ggplot(dat, aes(x = Year, y = Total)) +
+    geom_point(aes(colour = citedBy["Total"], shape = citedBy["Total"]),
+               size = 2) +
+    geom_point(aes(y = -Other, colour = citedBy["Other"], shape = citedBy["Other"]), 
+               size = 2) +
+    geom_point(aes(y = -Examiner, colour = citedBy["Examiner"], shape = citedBy["Examiner"]), 
+               size = 2) +
+    scale_color_manual(values = Scheme[citedBy, "gray"]) +
+    scale_shape_manual(values = Scheme[citedBy, "shape"]) +
+    theme_pub() +
+    theme(legend.position = c(0.2, 0.8), legend.title = element_blank()) +
+    labs(y = "Power-law Exponent")
+gg1
+
+```
+```{r}
+png("Figures/paramsOverTime_pl.png"); gg1; dev.off()
+saveRDS(gg1, "Figures/paramsOverTime_pl.rds")
+```
+
+```{r}
+years <- 1976:2015
+vec <- NULL
+
+type = "Total"
+for (i in seq_along(pl)) {
+    year <- years[i]
+    pars <- pl[[i]]$distributions$ln$getPars()
+    new <- c(type, year, pars)
+    vec <- rbind(vec, new)
+}
+type = "Other"
+for (i in seq_along(pl_Other)) {
+        if (is.null(pl_Examiner[[i]]))  {
+        pars <- c(NA,NA)
+    } else {
+    pars <- pl_Other[[i]]$distributions$ln$getPars()
+    }
+    year <- years[i]
+    new <- c(type, year, pars)
+    vec <- rbind(vec, new)
+}
+type = "Examiner"
+for (i in seq_along(pl_Examiner)) { 
+    if (is.null(pl_Examiner[[i]])) {
+        pars <- c(NA,NA)
+    } else {
+    pars <- pl_Examiner[[i]]$distributions$ln$getPars()
+    }
+    year <- years[i]
+    new <- c(type, year, pars)
+    vec <- rbind(vec, new)
+}
+
+vec <- data.frame(vec, row.names = NULL)
+colnames(vec) <- c("CitedBy", "Year", "Mean", "Sd")
+vec[,c("Year", "Mean", "Sd")] <- sapply(vec[,c("Year", "Mean", "Sd")], function(x) as.numeric(as.character(x)))
+
+```
+
+```{r}
+gg <- ggplot(vec, aes(x = Mean, y = Sd, col = Year)) + 
+    geom_point(size = 2) + 
+    facet_wrap(~CitedBy, ncol = 1) +
+    theme_pub() +
+    scale_color_gradient(low = "grey", high = "black") +
+    theme(legend.position = "right") +
+    guides(colour = guide_colorbar(barheight = 15)) +
+    labs(y = "Standard Deviation") +
+        theme(panel.grid.minor.x = element_blank(),
+           panel.grid.minor.y = element_blank()) 
+
+gg
+
+gg2 <- 
+    gg +
+    scale_x_continuous(limits = c(-30,5)) +
+    scale_y_continuous(limits = c(0,5)) +
+    theme(panel.grid.minor.x = element_blank(),
+          panel.grid.minor.y = element_blank()) 
+```
+
+```{r}
+png("Figures/logNormalParams.png"); gg; dev.off()
+png("Figures/logNormalParams_zoomed.png"); gg2; dev.off()
+saveRDS(gg, file = "Figures/logNormalParams.rds")
+saveRDS(gg2, file = "Figures/logNormalParams_zoomed.rds")
+```
+
+
 ```{r pl other example}
 par(mfrow = c(2,2))
 plot(pl_Other[[2003 - 1975]]$distributions$pl, main = "2003 Power-law Other")
@@ -226,6 +298,7 @@ plot(pl_Examiner[[2004 - 1975]]$distributions$pl, main = "2004 Power-Law Examine
 lines(pl_Examiner[[2004 - 1975]]$distributions$pl, col = "red")
 par(mfrow = c(1,1))
 ```
+
 
 ## Power-law vs. log-normal
 
@@ -306,27 +379,54 @@ if (file.exists("Dat/orderScatterplotData.rds")) {
 ```
 
 ```{r scatterplots}
-gg <- ggplot(data = scatterplotData, aes(x = Examiner, y = Other)) +
-    geom_jitter(alpha = 1/20, shape = 20, width = 1, height = 1) + 
-    theme_bw()
+set.seed(911)
+scatterplotSample <- scatterplotData %>% sample_n(100000)
+gg <- ggplot(data = scatterplotSample, aes(x = Examiner, y = Other)) +
+    scale_x_log10(limits = c(1,max(scatterplotData$Examiner))) + 
+    scale_y_log10(limits = c(1,max(scatterplotData$Other))) + 
+    annotation_logticks() + 
+    theme_pub() + 
+    labs(x = "Examiner Order", y = "Other Order")
 
 
-gg1 <- gg + scale_x_log10() + scale_y_log10() + annotation_logticks()
+gg1 <- gg  + 
+    stat_density_2d(aes(fill = ..level..), geom = "polygon") +
+    scale_fill_gradient(name = "Kernel Density", low = "light grey", high = "black", guide = "legend") +
+    theme(legend.title = element_text(),
+          legend.position = c(0.9, 0.8))
 
-png("Figures/orderScatterplot.png", height = 540, width = 960); gg; dev.off()
-png("Figures/orderScatterplotLog.png", height = 540, width = 960); gg1; dev.off()
-save(gg, gg1, file = "Figures/orderScatterplots.rdata")
+
+gg2 <- gg + 
+    geom_jitter(alpha = 1/20, shape = 20, width = 0.5, height = 0.5) + 
+    stat_smooth(method = "lm", colour = "goldenrod", size = 2)
+
+gg1
+gg2
 ```
+
+```{r}
+png("Figures/orderScatterplot.png", height = 540, width = 960); gg2; dev.off()
+png("Figures/orderScatterplotContours.png", height = 540, width = 960); gg1; dev.off()
+saveRDS(gg2, file = "Figures/orderScatterplot.rds")
+saveRDS(gg1, file = "Figures/orderScatterplotContours.rds")
+
+```
+
 ![](./Figures/orderScatterplot.png)
-![](./Figures/orderScatterplotLog.png)
+![](./Figures/orderScatterplotContours.png)
 
 ```{r pearson correlation coefficient}
-cor(scatterplotData)
-
-datlog10 <- log10(scatterplotData)
+datlog10 <- log10(scatterplotSample)
 datlog10 <- datlog10[!is.infinite(datlog10$Examiner),]
 datlog10 <- datlog10[!is.infinite(datlog10$Other),]
-cor(datlog10)
+
+correlations <- NULL
+correlations$kendall <- kendallTest(scatterplotSample[,1], scatterplotSample[,2])
+correlations$pearson <- pearsonTest(scatterplotSample[,1], scatterplotSample[,2])
+correlations$pearsonLog <- pearsonTest(datlog10[,1], datlog10[,2])
+correlations$spearman <- spearmanTest(scatterplotSample[,1], scatterplotSample[,2])
+
+saveRDS(correlations, "Dat/orderCorrelations.rds")
 ```
 
 ## Comparing average of order of Other for given Examiner and vice versa
@@ -338,74 +438,115 @@ cor(datlog10)
     * I hypothesised because this is a heavy tailed distribution the mean is biased so we look at the median instead
     * The median shows distributions that do indeed look flat
     
+
 ```{r}
-scatterplotData %>% group_by(Examiner) %>% summarise(meanOther = mean(Other)) %>% plot(pch = 20)
-
+breaks = exp(seq(0, log(max(scatterplotData$Examiner)), length.out = 11))
+midpoint <- apply(data.frame(breaks, lead(breaks, 1)), 1, mean) %>% na.omit()
 dat <- scatterplotData %>% 
     arrange(Examiner) %>% 
-    mutate(bins = cut(Examiner, breaks = seq(0,max(Examiner), by = 20), include.lowest = T, right = F)) %>% 
-    group_by(bins) %>% 
-    summarise(meanOther = mean(Other))
-plot(dat$bins, dat$meanOther)
+    mutate(bins = cut(Examiner, 
+                      breaks, 
+                      include.lowest = T, right = F)) %>%
+    na.omit() %>% 
+    group_by(bins) %>%
+    summarise(median = boxplot.stats(Other)$stats[2], 
+              lower = boxplot.stats(Other)$stats[1],
+              upper = boxplot.stats(Other)$stats[3],
+              mean = mean(Other),
+              sd = sd(Other)) %>% 
+    mutate(midpoint = midpoint[as.numeric(bins)])
 
-dat <- scatterplotData %>% 
-    arrange(Examiner) %>% 
-    mutate(bins = cut(Examiner, breaks = seq(0,max(Examiner), by = 40), include.lowest = T, right = F)) %>% 
-    group_by(bins) %>% 
-    summarise(meanOther = mean(Other))
-plot(dat$bins, dat$meanOther)
 ```
 
 ```{r}
-scatterplotData %>% group_by(Other) %>% summarise(meanOther = mean(Examiner)) %>% plot(pch = 20)
+gg1 <- ggplot(data = dat, aes(x = (midpoint), y = median)) +
+    geom_errorbar(aes(ymin = lower, ymax = upper), width = .1) +
+    geom_point(size = 2.5) +
+    scale_y_continuous(breaks = 0:7) + 
+    scale_x_log10(labels = round(breaks,1),
+                     breaks = breaks) +
+    labs(y = "Other Inter-quartile Range", x = "Examiner Binned Order") +
+    theme_pub() +
+    theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank())
+gg1
+```
 
-dat <- scatterplotData %>% 
-    arrange(Other) %>% 
-    mutate(bins = cut(Other, breaks = seq(0,max(Other), by = 20), include.lowest = T, right = F)) %>% 
-    group_by(bins) %>% 
-    summarise(meanExaminer = mean(Examiner))
-plot(dat$bins, dat$meanExaminer)
 
-dat <- scatterplotData %>% 
-    arrange(Other) %>% 
-    mutate(bins = cut(Other, breaks = seq(0,max(Other), by = 40), include.lowest = T, right = F)) %>% 
-    group_by(bins) %>% 
-    summarise(meanExaminer = mean(Examiner))
-plot(dat$bins, dat$meanExaminer)
+
+```{r}
+gg2 <- ggplot(data = dat, aes(x = midpoint, y = mean)) + 
+    geom_errorbar(na.rm = TRUE, aes( ymin = mean - sd, ymax = mean + sd), width = .1) +
+    geom_point(na.rm = TRUE, size = 2.5) +
+    theme_pub() +
+    scale_x_log10(breaks = breaks,
+                  labels = round(breaks,1)) +
+    labs(x = "Examiner Binned Order", y = "Other Mean Order") +
+    theme(panel.grid.minor.x = element_blank())
+gg2
 ```
 
 ```{r}
-scatterplotData %>% group_by(Examiner) %>% summarise(medianOther = median(Other)) %>% plot(pch = 20)
+png("Figures/MeanOtherVsExaminer.png"); gg2; dev.off()
+png("Figures/MedianOtherVsExaminer.png"); gg1; dev.off()
+saveRDS(gg2, "Figures/MeanOtherVsExaminer.rds")
+saveRDS(gg1, "Figures/MedianOtherVsExaminer.rds")
+```
 
-dat <- scatterplotData %>% 
-    arrange(Examiner) %>% 
-    mutate(bins = cut(Examiner, breaks = seq(0,max(Examiner), by = 20), include.lowest = T, right = F)) %>% 
-    group_by(bins) %>% 
-    summarise(medianOther = median(Other))
-plot(dat$bins, dat$medianOther)
 
+
+
+
+```{r}
+breaks = exp(seq(0, log(max(scatterplotData$Other)), length.out = 11))
+midpoint <- apply(data.frame(breaks, lead(breaks, 1)), 1, mean) %>% na.omit()
 dat <- scatterplotData %>% 
-    arrange(Examiner) %>% 
-    mutate(bins = cut(Examiner, breaks = seq(0,max(Examiner), by = 40), include.lowest = T, right = F)) %>% 
-    group_by(bins) %>% 
-    summarise(medianOther = median(Other))
-plot(dat$bins, dat$medianOther)
+    arrange(Other) %>% 
+    mutate(bins = cut(Other, 
+                      breaks, 
+                      include.lowest = T, right = F)) %>%
+    na.omit() %>% 
+    group_by(bins) %>%
+    summarise(median = boxplot.stats(Examiner)$stats[2], 
+              lower = boxplot.stats(Examiner)$stats[1],
+              upper = boxplot.stats(Examiner)$stats[3],
+              mean = mean(Examiner),
+              sd = sd(Examiner)) %>% 
+    mutate(midpoint = midpoint[as.numeric(bins)])
+
 ```
 
 ```{r}
-scatterplotData %>% group_by(Other) %>% summarise(medianOther = median(Examiner)) %>% plot(pch = 20)
-
-dat <- scatterplotData %>% 
-    arrange(Other) %>% 
-    mutate(bins = cut(Other, breaks = seq(0,max(Other), by = 20), include.lowest = T, right = F)) %>% 
-    group_by(bins) %>% 
-    summarise(medianExaminer = median(Examiner))
-plot(dat$bins, dat$medianExaminer)
-
-dat <- scatterplotData %>% 
-    arrange(Other) %>% 
-    mutate(bins = cut(Other, breaks = seq(0,max(Other), by = 40), include.lowest = T, right = F)) %>% 
-    group_by(bins) %>% 
-    summarise(medianExaminer = median(Examiner))
-plot(dat$bins, dat$medianExaminer)
+gg1 <- ggplot(data = dat, aes(x = (midpoint), y = median)) +
+    geom_errorbar(aes(ymin = lower, ymax = upper), width = .1) +
+    geom_point(size = 2.5) +
+    scale_y_continuous(breaks = 0:7) + 
+    scale_x_log10(labels = round(breaks,1),
+                     breaks = breaks) +
+    labs(y = "Examiner Inter-quartile Range", x = "Other Binned Order") +
+    theme_pub() +
+    theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank())
+gg1
 ```
+
+
+
+```{r}
+gg2 <- ggplot(data = dat, aes(x = midpoint, y = mean)) + 
+    geom_errorbar(na.rm = TRUE, aes( ymin = mean - sd, ymax = mean + sd), width = .1) +
+    geom_point(na.rm = TRUE, size = 2.5) +
+    theme_pub() +
+    scale_x_log10(breaks = breaks,
+                  labels = round(breaks,1)) +
+    labs(x = "Other Binned Order", y = "Examiner Mean Order") +
+    theme(panel.grid.minor.x = element_blank())
+gg2
+```
+
+```{r}
+png("Figures/MeanExaminerVsOther.png"); gg2; dev.off()
+png("Figures/MedianExaminerVsOther.png"); gg1; dev.off()
+saveRDS(gg2, "Figures/MeanExaminerVsOther.rds")
+saveRDS(gg1, "Figures/MedianExaminerVsOther.rds")
+```
+
+
