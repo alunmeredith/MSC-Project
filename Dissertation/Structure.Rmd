@@ -1,7 +1,9 @@
 ---
 title: "DissertationStructure"
-output: 
-  html_document: 
+output:
+  pdf_document:
+    toc: yes
+  html_document:
     toc: yes
 ---
 
