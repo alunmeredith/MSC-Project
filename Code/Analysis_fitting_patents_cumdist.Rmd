@@ -7,6 +7,8 @@ output:
 ```{r load data, include=FALSE}
 library(ggplot2)
 library(gridExtra)
+library(scales)
+source("plot_theme.R")
 load("year_counts.RData")
 ```
 
@@ -43,17 +45,34 @@ gg1 <- ggplot(data = year_counts, aes(x = rel_year, y = count)) +
     geom_point() + 
     geom_line(aes(y = exp.pred[,"fit"])) +
     geom_ribbon(aes(ymax = exp.pred[,"upr"], ymin = exp.pred[,"lwr"]), alpha = 0.3) +
-    theme_bw() + 
-    geom_line(aes(y = pl.pred[,"fit"], x = 1:40), linetype = "dashed")
+    geom_line(aes(y = pl.pred[,"fit"], x = 1:40), linetype = "dashed") +
+    theme_pub() +
+    theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) +
+    scale_y_continuous(limits = c(5e4, 3.5e5), 
+                   breaks = seq(10, 30, 10)*10^4, 
+                   labels = fancy_scientific) +
+    labs(x = "Time (years)", y = "Number of Patents")
 
 gg <- ggplot(data = year_counts, aes(x = rel_year, y = cum_count)) +
     geom_point() +
     geom_line(aes(y = cumsum(exp.pred[,"fit"]))) +
     geom_ribbon(aes(ymax = cumsum(exp.pred[,"upr"]), ymin = cumsum(exp.pred[,"lwr"])), alpha = 0.3) +
-    theme_bw() +
-    geom_line(aes(y = cumsum(pl.pred[,"fit"])), linetype = "dashed")
+    theme_pub() +
+    geom_line(aes(y = cumsum(pl.pred[,"fit"])), linetype = "dashed") +
+    theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) +
+    scale_y_continuous(limits = c(0, 6e6), 
+                   breaks = seq(0, 8e6, length.out = 5), 
+                   labels = fancy_scientific) +
+    labs(x = "Time (years)", y = "Cumulative number ofPatents")
 
-grid.arrange(gg1, gg, gg + scale_x_log10() + scale_y_log10(), ncol = 3)
+gg2 <-  gg + scale_x_log10(
+    limits = c(1,55),
+    breaks  = c(1,5,25)) + 
+    scale_y_log10(limits = c(1.5e4, 6e6), 
+                  breaks = 10^(1:8), 
+                  labels = fancy_scientific)
+
+grid.arrange(gg1, gg, gg2, ncol = 3)
 ```
 
 # Questions
@@ -63,6 +82,9 @@ grid.arrange(gg1, gg, gg + scale_x_log10() + scale_y_log10(), ncol = 3)
 ```{r save, include=F}
 png("Figures/patentCountFit.png"); gg1; dev.off()
 png("Figures/patentCountFit_cum.png"); gg; dev.off()
-png("Figures/patentCountFit_cum_loglog.png"); gg + scale_x_log10() + scale_y_log10(); dev.off()
+png("Figures/patentCountFit_cum_loglog.png"); gg2; dev.off()
+saveRDS(gg1, "Figures/patentCountFit.rds")
+saveRDS(gg, "Figures/patentCountFit.rds")
+saveRDS(gg2, "Figures/patentCountFit.rds")
 ```
 

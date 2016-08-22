@@ -23,16 +23,30 @@ dsum <- data %>% group_by(Year) %>% summarise(av_degree = sum(Order) / n())
 dat <- readRDS("Dat/orderFrequencies.rds")
 dat <- dat %>% group_by(Year) %>% summarise(av_degree = sum(Total2 * Order) / sum(Total2), av_degree_Other = sum(Other * Order) / sum(Other), av_degree_Examiner = sum(Examiner * Order) / sum(Examiner))
 dsum <- full_join(dsum %>% filter(Year %in% 1976:2000), dat)
+```
+```{r}
+source("plot_theme.R")
 
 (gg <- ggplot(dsum, aes(x = Year)) +
-    geom_point(aes(y = av_degree, col = "Total")) +
-    geom_point(aes(y = av_degree_Other,  col = "Other")) +
-    geom_point(aes(y = av_degree_Examiner, col = "Examiner")) +
-    theme_bw() +
-    scale_color_manual(values = c("Other" = "blue", "Examiner" = "red", "Total" = "black")) +
-    theme(legend.title=element_blank(), legend.position = c(0.1,0.8)))
+    geom_point(aes(y = av_degree, shape = citedByNames["Total"], colour = citedByNames["Total"])) +
+    geom_point(aes(y = av_degree_Other,  shape = citedByNames["Other"], colour = citedByNames["Other"])) +
+    geom_point(aes(y = av_degree_Examiner, shape = citedByNames["Examiner"], colour = citedByNames["Examiner"])) +
+    theme_pub() +
+    scale_y_continuous(limits = c(0,40)) +
+    labs(y = "Average Citations per Patent") +
+    scale_color_manual(values = c("Other" = colourScheme$Citedby[["Other"]], 
+                                  "Examiner" = colourScheme$Citedby[["Examiner"]], 
+                                  "Total" = colourScheme$Citedby[["Total"]])) +
+    theme(legend.title = element_blank(), legend.position = c(0.2,0.8))) +
+    scale_shape_manual(values = c("Other" = shapeScheme$Citedby[["Other"]], 
+                                  "Examiner" = shapeScheme$Citedby[["Examiner"]], 
+                                  "Total" = shapeScheme$Citedby[["Total"]]))
+```
 
+
+```{r}
 png("Figures/av_degree_vs_year.png"); gg; dev.off()
+saveRDS(gg, "Figures/av_degree_vs_year.rds")
 ```
 
 

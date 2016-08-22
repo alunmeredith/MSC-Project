@@ -13,8 +13,10 @@ library(ggplot2)
 library(ggthemes)
 library(poweRlaw)
 library(gridExtra)
+library(scales)
 knitr::opts_chunk$set(results = 'hold')
 knitr::opts_chunk$set(message = FALSE)
+source("plot_theme.R")
 ```
 The aim of this script is to reproduce two of the plots in the the paper ["Topology and Evolution of Technology Innovation Networks"](http://arxiv.org/pdf/physics/0612030.pdf), which summarises the USPTO patent network. The first figure being reproduced looks at the number of patents over time, and the second is the in-degree distribution and fitting a extended power-law distribution to that. 
 
@@ -29,25 +31,32 @@ The data being used for these plots in the cleaned concatonated patent data prod
 data <- read_csv("../DataFiles/Cleaned/patent_cat.csv", progress = FALSE)
 data$Year <- year(data$Date2)
 str(data)
+year_counts <- data %>% group_by(Year) %>% summarise(count = n()) %>% filter(Year %in% 1976:2015)
 ```
 ## Plot 1: Patents granted by year
 The first plot counts the number of patents granted by year, there is an inset which looks at this as a cumulative sum on a log-log scale.
 
-In order to process the data into a tidy format processable by ggplot, we summarise it counting the number of entries (patents) for each year. There are a few outliers (`r nrow(data %>% group_by(Year) %>% summarise(count = n()) %>% filter(!(Year %in% 1976:2015)))`) so this is then filtered to only allow only patents within that range. 
-
-```{r plot1 data summary}
-# Summarise results
-year_counts <- data %>% group_by(Year) %>% summarise(count = n()) %>% filter(Year %in% 1976:2015)
-```
+In order to process the data into a tidy format processable by ggplot, we summarise it counting the number of entries (patents) for each year. There are a few outliers so this is then filtered to only allow only patents within that range. 
 
 ```{r plot1}
-(gg1 <- ggplot(data = year_counts, aes(x = Year, y = count)) +
+data.plot <- year_counts %>% filter(Year %in% 1976:2014)
+
+gg1 <- ggplot(data = data.plot, aes(x = Year, y = count)) +
+    theme_pub() +
     geom_line() +
     geom_point(shape = 19) +
-    scale_x_continuous(limits = c(1970,2020), minor_breaks = seq(1975, 2015, 10) ) +
-    scale_y_continuous(limits = c(5e4, 3.5e5), breaks = seq(5e4, 35e4, 5e4)) +
-    theme_bw()
- )
+    labs(y = "Patents", x = "Year") + 
+    scale_x_continuous(limits = c(1975,2015), minor_breaks = seq(1975, 2015, 10) ) +
+    scale_y_continuous(limits = c(5e4, 3.5e5), 
+                       breaks = seq(10, 30, 10)*10^4, 
+                       labels = fancy_scientific)
+
+gg1
+
+```
+```{r save plots}
+saveRDS(gg1, "Figures/PatentCountVsYear.rds")
+png("Figures/PatentCountVsYear.png"); gg1; dev.off()
 ```
 
 ### Notes on plot1
@@ -72,11 +81,17 @@ year_counts$rel_year <- year_counts$Year - 1975
 
 ```{r plot1_inset}
 gg1b <- ggplot(data = year_counts, aes(x = rel_year, y = cum_count)) + 
-    geom_point() +
+    theme_pub() +
     scale_x_log10() +
-    scale_y_log10() + 
-    theme_bw() +
-    labs(x = "t", y = "N(t)")
+    labs(x = "Time (Years)", y = "Cumulative Number of Patents") +
+    scale_y_log10(limits = c(5e4, 1e7), 
+                       breaks = 10^(5:7), 
+                       labels = fancy_scientific) +
+    annotation_logticks(sides = "tblr") +
+     theme(panel.grid.minor.x = element_blank(),
+           panel.grid.minor.y = element_blank())
+
+gg1b + geom_point()
 ```
 
 ```{r plot1_inset linear regression, fig.height=4, fig.width=11}
@@ -84,22 +99,28 @@ lm1 <- lm(log10(cum_count) ~ log10(rel_year), data = year_counts)
 
 gg1b.lm1 <- 
     gg1b + 
+    geom_point() +
     geom_abline(intercept = lm1$coefficients[1], slope = lm1$coefficients[2]) + 
-    ggtitle("linear fit of all points") +
-    annotate(label = round(lm1$coefficients[2],2), x = 10, y = 4e5, geom = "text", size = 5) +
-    annotation_logticks(sides = "tblr")
+    annotate(label = round(lm1$coefficients[2],2), x = 10, y = 4e5, geom = "text", size = 5)
 
 t <- year_counts %>% filter(Year %in% 1985:2004)
 lm2 <- lm(log10(cum_count) ~ log10(rel_year), data = t)
 gg1b.lm2 <- 
     gg1b + 
+    geom_point(colour = "grey") +
     geom_abline(intercept = lm2$coefficients[1], slope = lm2$coefficients[2]) + 
-    ggtitle("linear fit over 1985:2014") +
-    geom_point(data = t, col = "red") +
+    geom_point(data = t, col = "black") +
     annotate(label = round(lm2$coefficients[2],2), x = 10, y = 4e5, geom = "text", size = 5) +
     annotation_logticks(sides = "tblr")
 
+
 grid.arrange(gg1b.lm1, gg1b.lm2, ncol=2)
+```
+```{r save plot}
+png("Figures/CumulativePatents1.png"); gg1b.lm1; dev.off()
+png("Figures/CumulativePatents2.png"); gg1b.lm2; dev.off()
+saveRDS(gg1b.lm1, "Figures/CumulativePatents1.rds")
+saveRDS(gg1b.lm2, "Figures/CumulativePatents2.rds")
 ```
 
 ### Notes on plot1 inset
@@ -133,7 +154,8 @@ lm_func <- function(x, y, year, data = degree_distribution, xmin = 20, xmax = 20
 ```
 
 ```{r raw plot}
-gg2a <- ggplot(data = degree_distribution, aes(x = Order, y = count, col = as.factor(Year))) +
+gg2a <- ggplot(data = degree_distribution, aes(x = Order, y = count, col = as.character(Year))) +
+    theme_pub() + 
     geom_line(size = 0.5) + 
     scale_x_log10(
         breaks = scales::trans_breaks("log10", function(x) 10^x),
@@ -145,29 +167,36 @@ gg2a <- ggplot(data = degree_distribution, aes(x = Order, y = count, col = as.fa
     limits = c(1, 5e4)
     ) +
     annotation_logticks() +
-    theme_bw() +
     theme(panel.grid.minor = element_blank()) +
-    theme(legend.position = "bottom") +
     stat_function(fun = function(x) lm_func(x, y = "count", year = 1984, xmax = 50)$func, 
-                  geom = 'line', colour = 'orange', linetype = "dashed") +
-    annotate(label = round(lm_func(x = NA, y = "count", year = 1984, xmax = 50)$coef[1],2), 
-             x = 10, y = 1e1, geom = "text", size = 3) +
+                  geom = 'line', colour = "black", linetype = "solid", size = 1) +
+    #annotate(label = round(lm_func(x = NA, y = "count", year = 1984, xmax = 50)$coef[1],2), 
+    #         x = 10, y = 1e1, geom = "text", size = 3) +
     stat_function(fun = function(x) lm_func(x, y = "count", year = 1992)$func, 
-                  geom = 'line', colour = 'green', linetype = "dashed") +
-    annotate(label = round(lm_func(x = NA, y = "count", year = 1992)$coef[1],2), 
-             x = 10, y = 3e1, geom = "text", size = 3) +
+                  geom = 'line', colour = "black", linetype = "solid", size = 1) +
+    #annotate(label = round(lm_func(x = NA, y = "count", year = 1992)$coef[1],2), 
+    #         x = 10, y = 3e1, geom = "text", size = 3) +
     stat_function(fun = function(x) lm_func(x, y = "count", year = 2002)$func, 
-                  geom = 'line', colour = 'blue', linetype = "dashed") +
-    annotate(label = round(lm_func(x = NA, y = "count", year = 2002)$coef[1],2), 
-             x = 10, y = 1e2, geom = "text", size = 3) +
+                  geom = 'line', colour = "black", linetype = "solid", size = 1) +
+    #annotate(label = round(lm_func(x = NA, y = "count", year = 2002)$coef[1],2), 
+    #         x = 10, y = 1e2, geom = "text", size = 3) +
     stat_function(fun = function(x) lm_func(x, y = "count", year = 2012)$func, 
-                  geom = 'line', colour = 'purple', linetype = "dashed") +
-    annotate(label = round(lm_func(x = NA, y = "count", year = 2012)$coef[1],2), 
-             x = 10, y = 3e2, geom = "text", size = 3)
+                  geom = 'line', colour = "black", linetype = "solid", size = 1) +
+    #annotate(label = round(lm_func(x = NA, y = "count", year = 2012)$coef[1],2), 
+    #         x = 10, y = 3e2, geom = "text", size = 3) +
+    scale_colour_manual(values = Scheme[years1,"gray"]) +
+    ylab("Number of patents")
+
+gg2a
 ```
 
+```{r plot2 save}
+png("Figures/OrderDistribution.png"); gg2a; dev.off()
+saveRDS(gg2a, "Figures/OrderDistribution.rds")
+# gradients = 6.31, 6.92, 7.77, 8.46
+```
 
-```{r normalised plot, fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
+```{r normalised plot, eval=FALSE, fig.height=5, fig.width=10, message=FALSE, warning=FALSE, include=FALSE}
 gg2a2 <- ggplot(data = degree_distribution, aes(x = Order, y = freq, colour = as.factor(Year))) + 
     geom_line(size = 0.5) + 
     scale_x_log10(
@@ -205,7 +234,7 @@ The above shows a raw plot as shown in valverde and a normalised density plot wh
 
 Typically however heavy tailed plots like above are done using histograms to mitigate the effects of very rare events in the heavy tail. Below we create such a histogram, however there are artefacts due to the fact that order is discrete, as the bins change from containing one order to two etc. 
 
-```{r hist plot}
+```{r hist plot, eval=FALSE, include=FALSE}
 test <- 1*10^seq(0,log10(4000), length.out = 100)
 degree_distribution$bin <- cut(degree_distribution$Order, 
                                breaks = c(0,test),
@@ -231,17 +260,7 @@ hist2 <-dplyr::filter(hist, Year %in% c(1984,1992,2002,2012))
  * Our data has lower maximum counts and higher maximum order (1e3 rather than 1e2)
     * This could indicate that valverde doesn't include __foreign citations__ whereas we do. 
 
-
-
-
 ```{r save, echo=FALSE, message=FALSE, warning=FALSE}
-png("Figures/gg1.png"); gg1; dev.off()
-png("Figures/gg1b.png"); gg1b; dev.off()
-png("Figures/gg1blm.png"); grid.arrange(gg1b.lm1, gg1b.lm2, ncol=2); dev.off()
-png("Figures/gg2a.png"); gg2a; dev.off()
-png("Figures/gg2a2.png"); gg2a2; dev.off()
-png("Figures/gg2a3.png"); gg2a3; dev.off()
-
 save(year_counts, file = "year_counts.RData")
 save(degree_distribution_all, degree_distribution, file = "degree_distribution.RData")
 ```

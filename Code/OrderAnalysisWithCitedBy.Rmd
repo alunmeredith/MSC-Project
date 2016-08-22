@@ -17,6 +17,7 @@ library(ggplot2)
 library(rmongodb)
 library(poweRlaw)
 library(gridExtra)
+source("plot_theme.R")
 ```
 
 In this notebook we compare the distribution of citations by which group of people cited them. Cited by examiner is exactly that whereas "Cited by other"" indicates those cited in a protest, by an attorney or agent not acting in a representative capacity but on behalf of a single inventor, and by the applicant.
@@ -58,18 +59,42 @@ summary(orderFrequencies %>% select(processingDifferences))
 dat <- orderFrequencies %>% group_by(Year) %>% summarise(diffTotal = sum(processingDifferences), absDiffTotal = sum(abs(processingDifferences)))
 gg1 <- ggplot(dat, aes(x = Year, y = absDiffTotal)) +
     geom_point() +
-    theme_bw()
+    theme_pub() +
+    labs(y = "Patents with differences in Order") +
+    theme(panel.grid.minor.x = element_blank(),
+           panel.grid.minor.y = element_blank(),
+          panel.grid.major.x = element_blank()) +
+    scale_x_continuous(breaks = seq(2001, 2015, 1))
+    
 
-dat2 <- orderFrequencies[orderFrequencies$processingDifferences != 0,]
-gg2 <- ggplot(dat2, aes(x = Order, y = abs(processingDifferences), col = as.factor(Year))) +
-    geom_point(alpha = 0.6, shape= 20) +
-    scale_x_continuous(limits = c(0,250)) +
-    theme_bw() + 
-    theme(legend.position = "none")
+dat2 <- orderFrequencies[orderFrequencies$processingDifferences != 0,] %>% 
+    filter(Year %in% c(2006, 2010, 2014))
+gg2 <- ggplot(dat2, aes(x = Order, y = (processingDifferences), col = as.character(Year))) +
+    geom_point(aes(shape = as.character(Year), colour = as.character(Year)), size = 1, alpha = 0.4) +
+    geom_smooth(size=1, method="loess", formula = y ~ x,
+                 span=0.1, se=FALSE, aes(linetype = as.character(Year))) +
+    scale_x_continuous(limits = c(0,75)) +
+    theme_pub() +
+    scale_linetype_manual(values = Scheme[years2, "linetype"]) +
+    scale_colour_manual(values = Scheme[years2, "colour"]) +
+    theme(legend.position = c(0.8,0.2)) +
+    labs(y = "Relative patent count")
+
+# Graph showing the relative number of patents at each order through two different methosd (parsing - mapReduce), the tail is cut off but continues to converge to 0. 
+
 
 grid.arrange(gg1, gg2)
 ```
 
+```{r save plots}
+png("Figures/parsingErrorsPerYear.png"); gg1; dev.off()
+png("Figures/parsingErrorsPerOrder.png"); gg2; dev.off()
+saveRDS(gg1, "Figures/parsingErrorsPerYear.rds")
+saveRDS(gg2, "Figures/parsingErrorsPerOrder.rds")
+```
+
+This shows that the mapReduce methodology has more citations with low order whereas 
+From this data we cannot judge the size of the differences only that the mapReduce is either loosing some citation information OR the parsing method is adding some.
 
 ```{r powerLaw gradient Function, include=FALSE}
 lm_func <- function(x = NA, y = "count", var = "Total2", year = 2002, data = orderFrequencies, xmin = 20, xmax = 200) { 
@@ -92,10 +117,10 @@ legend.total <- paste("Total", round(lm_func()$coef[2],2))
 legend.other <- paste("Other", round(lm_func(var = "Other")$coef[2],2))
 legend.examiner <- paste("Examiner", round(lm_func(var = "Examiner")$coef[2],2))
 
-ggplot(data = dat, aes(x = Order, y = Total2, colour = as.factor(Year))) +
-    geom_point(size = 0.5, alpha = .7, aes(colour = legend.total)) +
-    geom_point(size = 0.5, aes(y = Other, colour = legend.other), alpha = .7) +
-    geom_point(size = 0.5, aes(y = Examiner, colour = legend.examiner), alpha = .7) +
+gg3 <- ggplot(data = dat, aes(x = Order, y = Total2)) +
+    geom_point(size = 0.5, colour = Scheme["Total","colour"]) +
+    geom_point(size = 0.5, aes(y = Other), colour = Scheme["Other","colour"]) +
+    geom_point(size = 0.5, aes(y = Examiner), colour = Scheme["Examiner","colour"]) +
     scale_x_log10(
         breaks = scales::trans_breaks("log10", function(x) 10^x),
         labels = scales::trans_format("log10", scales::math_format(10^.x))
@@ -105,22 +130,35 @@ ggplot(data = dat, aes(x = Order, y = Total2, colour = as.factor(Year))) +
         labels = scales::trans_format("log10", scales::math_format(10^.x)),
         limits = c(1, 5e4)
     ) +
-    stat_function(fun = function(x) lm_func(x)$func, 
-                  geom = 'line', aes(colour = legend.total)) +
-    stat_function(fun = function(x) lm_func(x, var = "Other")$func, 
-                  geom = 'line', aes(colour = legend.other)) +
-    stat_function(fun = function(x) lm_func(x, var = "Examiner", xmax = 90)$func, 
-                  geom = 'line', aes(colour = legend.examiner)) +
-    scale_colour_manual(breaks = c(legend.total, legend.other, legend.examiner),
-                        values = c("red", "green", "blue")) +
-    theme_bw() +
+    stat_function(fun = function(x) lm_func(x)$func, geom = 'line', size = 1.3,
+                  aes(colour = citedBy["Total"],
+                      linetype = citedBy["Total"])) +
+    stat_function(fun = function(x) lm_func(x, var = "Other")$func, size = 1.3, geom = 'line',
+                  aes(colour = citedBy["Other"], 
+                      linetype = citedBy["Other"])) +
+    stat_function(fun = function(x) lm_func(x, var = "Examiner", xmax = 90)$func, geom = 'line', size = 1.3,
+                  aes(colour = citedBy["Examiner"], linetype = citedBy["Examiner"])) +
+    scale_colour_manual(values = c("Other" = Scheme["Other","colour"],
+                                   "Total" = Scheme["Total", "colour"],
+                                   "Examiner" = Scheme["Examiner", "colour"])) +
+    scale_linetype_manual(values = c("Other" = Scheme["Other","linetype"],
+                                   "Total" = Scheme["Total", "linetype"],
+                                   "Examiner" = Scheme["Examiner", "linetype"])) +
+    theme_pub() +
     theme(legend.title=element_blank(), legend.position = c(0.8,0.8), legend.key = element_blank()) +
-    annotation_logticks()
+    annotation_logticks() +
+    labs(y = "Number of Patents")
+
+gg3
 ```
  
  * Examiner has a smaller range of values (steeper gradient), goes to about 100 rather than 1000. 
  * Examiner has larger frequencies at low orders. 
  * Examiner seems to be a little better fit for a power law. 
+```{r save plot}
+png("Figures/orderDistributionCitedBy.png"); gg3; dev.off()
+saveRDS(gg3, "Figures/orderDistributionCitedBy.rds")
+```
 
 ## Change in Power-Law gradient over time
 
