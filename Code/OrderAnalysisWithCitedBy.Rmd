@@ -409,7 +409,6 @@ png("Figures/orderScatterplot.png", height = 540, width = 960); gg2; dev.off()
 png("Figures/orderScatterplotContours.png", height = 540, width = 960); gg1; dev.off()
 saveRDS(gg2, file = "Figures/orderScatterplot.rds")
 saveRDS(gg1, file = "Figures/orderScatterplotContours.rds")
-
 ```
 
 ![](./Figures/orderScatterplot.png)
@@ -538,6 +537,7 @@ gg2 <- ggplot(data = dat, aes(x = midpoint, y = mean)) +
     scale_x_log10(breaks = breaks,
                   labels = round(breaks,1)) +
     labs(x = "Other Binned Order", y = "Examiner Mean Order") +
+    labs(x = "Examiner Binned Order", y = "Other Mean Order") +
     theme(panel.grid.minor.x = element_blank())
 gg2
 ```
@@ -548,5 +548,4 @@ png("Figures/MedianExaminerVsOther.png"); gg1; dev.off()
 saveRDS(gg2, "Figures/MeanExaminerVsOther.rds")
 saveRDS(gg1, "Figures/MedianExaminerVsOther.rds")
 ```
-
 
