@@ -287,16 +287,49 @@ saveRDS(gg2, file = "Figures/logNormalParams_zoomed.rds")
 
 
 ```{r pl other example}
-par(mfrow = c(2,2))
-plot(pl_Other[[2003 - 1975]]$distributions$pl, main = "2003 Power-law Other")
-lines(pl_Other[[2003 - 1975]]$distributions$pl, col = "red")
-plot(pl_Other[[2004 - 1975]]$distributions$pl, main = "2004 Power-law Other")
-lines(pl_Other[[2004 - 1975]]$distributions$pl, col = "red")
-plot(pl_Examiner[[2003 - 1975]]$distributions$pl, main = "2003 Power-Law Examiner")
-lines(pl_Examiner[[2003 - 1975]]$distributions$pl, col = "red")
-plot(pl_Examiner[[2004 - 1975]]$distributions$pl, main = "2004 Power-Law Examiner")
-lines(pl_Examiner[[2004 - 1975]]$distributions$pl, col = "red")
-par(mfrow = c(1,1))
+dat2003 <- plot(pl_Other[[2003 - 1975]]$distributions$pl, draw = FALSE)
+pl2003 <- lines(pl_Other[[2003 - 1975]]$distributions$pl, draw = FALSE)
+dat2004 <- plot(pl_Other[[2004 - 1975]]$distributions$pl, draw = FALSE)
+pl2004 <- lines(pl_Other[[2004 - 1975]]$distributions$pl, draw = FALSE)
+
+gg1 <- ggplot(dat2003, aes(x = x, y = y)) + 
+    geom_point(alpha = 0.7) +
+    scale_x_log10(breaks = scales::trans_breaks("log10", function(x) 10^x),
+        labels = scales::trans_format("log10", scales::math_format(10^.x)),
+        limits = c(1, 1000)) +
+    scale_y_log10(
+         breaks = scales::trans_breaks("log10", function(x) 10^x),
+        labels = scales::trans_format("log10", scales::math_format(10^.x)),
+        limits = c(1e-5, 1)
+    ) +
+    theme_pub() +
+    geom_line(data = pl2003, aes(x = x, y = y), colour = "goldenrod", size = 1.5) +
+    labs(x = "Order", y = "Frequency") +
+        theme(panel.grid.minor.x = element_blank(),
+          panel.grid.minor.y = element_blank())
+gg1
+
+gg2 <- ggplot(dat2004, aes(x = x, y = y)) + 
+    geom_point(alpha = 0.7) +
+    scale_x_log10(breaks = scales::trans_breaks("log10", function(x) 10^x),
+        labels = scales::trans_format("log10", scales::math_format(10^.x)),
+        limits = c(1, 1000)) +
+    scale_y_log10( breaks = scales::trans_breaks("log10", function(x) 10^x),
+        labels = scales::trans_format("log10", scales::math_format(10^.x)),
+        limits = c(1e-5, 1)
+    ) +
+    theme_pub() +
+    geom_line(data = pl2004, aes(x = x, y = y), colour = "goldenrod", size = 1.5) +
+    labs(x = "Order", y = "Frequency") +
+    theme(panel.grid.minor.x = element_blank(),
+          panel.grid.minor.y = element_blank())
+gg2
+```
+```{r}
+png("Figures/plFit2003.png", width = 15, height = 9, units = "cm", res = 72); gg1; dev.off()
+png("Figures/plFit2004.png", width = 15, height = 9, units = "cm", res = 72); gg2; dev.off()
+saveRDS(gg1, "Figures/plFit2003.rds")
+saveRDS(gg2, "Figures/plFit2004.rds")
 ```
 
 
@@ -349,12 +382,100 @@ print(paste("Upper Limit on probability given both are true",pl_Examiner[[2001 -
 
 par(mfrow = c(1,1))
 ```
+ 
+```{r}
+b <- lapply(pl_Examiner[[yr - 1975]]$distributions, function(x) {
+    ret <- lines(x, draw = FALSE)
+    ret$CitedBy <- "Examiner"
+    return(ret)
+    })
+
+b.df <- b[[1]]
+b.df$variable <- names(b)[1]
+for(i in 2:length(b)) {
+    b[[i]]$variable <- names(b)[i]
+    b.df <- rbind(b.df, b[[i]])
+}
+b.df$variable <- as.factor(b.df$variable)
+b.df$variable <- plyr::revalue(b.df$variable, c("exp" = "Exponential", "ln" = "Log-Normal", "pois" = "Poisson", "pl" = "Power-Law"))
+
+a <- plot(pl_Examiner[[yr - 1975]]$distributions$exp, draw = FALSE)
+a$CitedBy <- "Examiner"
+a <- as.data.frame(a) 
+names(a) <- c("Order", "Frequency", "CitedBy")
+
+a.df <- NULL
+variables <- levels(as.factor(b.df$variable))
+for(var in variables){
+    a$variable <- var
+    a.df <- rbind(a.df, a)
+}
+
+b.fin <- b.df
+a.fin <- a.df
+
+
+b <- lapply(pl_Other[[yr - 1975]]$distributions, function(x) {
+    ret <- lines(x, draw = FALSE)
+    ret$CitedBy <- "Other"
+    return(ret)
+    })
+
+b.df <- b[[1]]
+b.df$variable <- names(b)[1]
+for(i in 2:length(b)) {
+    b[[i]]$variable <- names(b)[i]
+    b.df <- rbind(b.df, b[[i]])
+}
+b.df$variable <- as.factor(b.df$variable)
+b.df$variable <- plyr::revalue(b.df$variable, c("exp" = "Exponential", "ln" = "Log-Normal", "pois" = "Poisson", "pl" = "Power-Law"))
+
+a <- plot(pl_Other[[yr - 1975]]$distributions$exp, draw = FALSE)
+a$CitedBy <- "Other"
+a <- as.data.frame(a) 
+names(a) <- c("Order", "Frequency", "CitedBy")
+
+a.df <- NULL
+variables <- levels(as.factor(b.df$variable))
+for(var in variables){
+    a$variable <- var
+    a.df <- rbind(a.df, a)
+}
+
+b.fin <- rbind(b.fin, b.df) %>% na.omit()
+a.fin <- rbind(a.fin, a.df) %>% na.omit()
+``` 
+ 
+```{r}
+dat.a <- a.fin %>% dplyr::filter(!(variable %in% c("ln_equalXmin", "pl_equalXmin")))
+dat.a$variable <- as.factor(dat.a$variable)
+dat.b <- dplyr::filter(b.fin, y != 0, !(variable %in% c("ln_equalXmin", "pl_equalXmin")))
+dat.b$variable <- as.factor(dat.b$variable)
+
+gg <- ggplot(data = dat.a, aes(x = Order, y = Frequency)) +
+    geom_point(colour = "grey") +
+    geom_line(data = dat.b, aes(x = x, y = y), colour = "black", size = 1.5) +
+    facet_grid(CitedBy ~ variable) +
+    theme_pub() + 
+    scale_x_log10() +
+    scale_y_log10(limits = c(1e-6, 1e0),
+                  breaks = c(1e-5, 1e-3, 1e-1),
+                  labels = c(expression(10^-5), expression(10^-3), expression(10^-1)))
+``` 
+
+```{r}
+png(width = 875, height = 500, filename = "Figures/ExaminerOtherDistributionFit.png"); gg; dev.off()
+saveRDS(gg, "Figures/ExaminerOtherDistributionFit.rds")
+```
+
  * The log0normal here is able to capture the entire distribution including most of the variation in the tail. 
  * Exponential and poisson don't fit any part of the distribution to a reasonable degree (even the start like before)
  * Power-law looks more dubious as no part of the distribution looks truely straight on log-log scale. 
  * Conclusion: This clearly looks like a log-normal distribution. 
  
 ## Scatterplot between orderOther and orderExaminer
+
+
 
 In this section we consider the relationship between Other and Examiner citations through a scatterplot and their possible correlation. 
 
