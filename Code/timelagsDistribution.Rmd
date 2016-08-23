@@ -1,0 +1,33 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r load scatterplot data}
+library(rmongodb)
+library(ggplot2)
+if (file.exists("Dat/SampleCitations100000perYear.rds")) {
+    data <- readRDS("Dat/SampleCitations100000perYear.rds")
+} else {
+    mongo <- mongo.create()
+    mongo.is.connected(mongo)
+    db <- "sotonproject"
+    data <- mongo.find.all(mongo, "sotonproject.SampleCitations100000perYear")
+    mongo.destroy(mongo)
+    data <- lapply(data, unlist)
+    data <- as.data.frame(data)
+    data <- t(data)[,2:3]
+    rownames(data) <- NULL
+    colnames(data) <- c("citedBy", "msDiff")
+    data <- as.data.frame(data)
+    data$msDiff <- as.numeric(as.character(data$msDiff))
+    saveRDS(data, "Dat/SampleCitations100000perYear.rds")
+}
+
+```
+
+```{r}
+gg <- ggplot(data, aes(x = msDiff, colour = citedBy)) + stat_bin(geom = "line") + scale_x_log10() + scale_y_log10()
+saveRDS(gg, "Dat/SampleCitations100000plot.rds")
+```
+

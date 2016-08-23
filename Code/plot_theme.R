@@ -60,7 +60,8 @@ theme_pub <- function(base_size = 12, base_family = "arial") {
 # Colour schemes
 entries <- c("1984", "1992", "2002", "2012",
                          "2006", "2010", "2014",
-                         "Examiner", "Other", "Total")
+                         "Examiner", "Other", "Total", 
+             "Our Data", "USPTO Summary", "List Files")
 names(entries) <- entries
 Scheme <- data.frame(colour = rep(NA, length(entries)), 
                      gray = rep(NA, length(entries)),
@@ -85,6 +86,12 @@ Scheme[citedBy, "gray"] <- gray.colors(n = 3, 0.2 ,0.7)
 Scheme[citedBy, "colour"] <- brewer_pal(palette = "Set1")(3)
 Scheme[citedBy, "shape"] <- shape_pal()(3)
 Scheme[citedBy, "linetype"] <- linetype_pal()(3)
+
+# Data source
+dataSource <- entries[c("Our Data", "USPTO Summary", "List Files")]
+Scheme[dataSource, "gray"] <- gray.colors(n = 3, 0.2 ,0.7)
+Scheme[dataSource, "shape"] <- shape_pal()(3)
+Scheme[dataSource, "colour"] <- brewer_pal(palette = "Set1")(3)
 
  
 

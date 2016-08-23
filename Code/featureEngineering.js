@@ -224,7 +224,7 @@ print("Processed All Patents-----------------------------------")
 
 var totalCitations = db.citations.find().count();
 var then = new Date();
-var processed = 33274687;
+var processed = 0;
 db.citations.find({PatentDate3: {$exists: false}}).noCursorTimeout().forEach(function (citationDoc){
 	
 	citationDoc.PatentDate3 = new Date(citationDoc.PatentDate2);
@@ -248,23 +248,30 @@ print("Processed All -------------------------------------------")
 // --------------------------------------------------------------------------------------------
 
 // PatentLinkTime
-var totalCitations = db.test.count();
-var PatentLinkTime = 0;
+var totalCitations = db.citationsAll.count();
+var processedCursor = db.citationsAll.find({PatentLinkTime: {$exists: true}}).sort({PatentLinkTime: -1});
+var	PatentLinkTime = 0;
 var processed = 0;
+if (PatentLinkTime != null) {
+	PatentLinkTime = processedCursor.limit(1).toArray.PatentLinkTime;
+	processed = processedCursor.count();
+}
 var then = new Date();
-db.test.find({PatentLinkTime: {$exists: false}}).sort({PatentDate: 1}).noCursorTimeout().forEach(function(citation) {
+db.citationsAll.find({PatentLinkTime: {$exists: false}}).sort({PatentDate: 1}).noCursorTimeout().forEach(function(citation) {
 	PatentLinkTime += 1;
 	citation.PatentLinkTime = PatentLinkTime;
-	db.test.save(citation);
+	db.citationsAll.save(citation);
 
 	processed += 1;
 	if (processed % 10000 == 0) {
 		now = new Date();-
 		print("Processed: ", processed, "/", totalCitations);
-		print("Time Remaining: ", (totalCitations - processed) * (now - then)/(10000*1000*3600));
+		print("Time Remaining: ", (totalCitations - processed) * (now - then)/(10000*1000*60));
 		then = now;
 	};
 });
+
+print("Done!")
 
 print("Final link time = ", PatentLinkTime);
 
