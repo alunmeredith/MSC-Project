@@ -27,7 +27,24 @@ if (file.exists("Dat/SampleCitations100000perYear.rds")) {
 ```
 
 ```{r}
-gg <- ggplot(data, aes(x = msDiff, colour = citedBy)) + stat_bin(geom = "line") + scale_x_log10() + scale_y_log10()
-saveRDS(gg, "Dat/SampleCitations100000plot.rds")
+gg <- ggplot(data, aes(x = msDiff)) + geom_histogram() 
+gg1 <- gg + scale_x_log10() #+ scale_y_log10()
+
+dat <- dplyr::filter(data, !(citedBy %in% c("cited by applicant", "cited by third party")))
+gg2 <- ggplot(dat, aes(x = msDiff, fill = citedBy)) + stat_bin()
+gg3 <- gg2 + scale_x_log10() #+ scale_y_log10()
 ```
 
+```{r}
+gg
+gg1
+gg2
+gg3
+saveRDS(gg, "Dat/SampleCitations100000plot.rds")
+
+```
+
+1e10 is about a third of a year
+1e11 is about 3 years
+1e12 is about 30 years
+mean is around 10^11.4 which is about 8 years. 

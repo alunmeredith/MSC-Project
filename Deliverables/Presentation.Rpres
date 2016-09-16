@@ -1,0 +1,22 @@
+Presentation
+========================================================
+author: Alun Meredith
+date: 24/08/2016
+autosize: true
+
+First Slide
+========================================================
+
+- Introduction
+- Data Pipeline
+- Initial exploration
+- Analysis
+- Conclusion
+
+Pipeline
+========================================================
+![alt text](../Dissertation/FlowChart.png)
+```{r}
+list.files("../Dissertation/")
+```
+
