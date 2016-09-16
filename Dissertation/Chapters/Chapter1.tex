@@ -1,0 +1,18 @@
+% Chapter Template
+
+\chapter{Introduction} % Main chapter title
+
+\label{Chapter1} % Change X to a consecutive number; for referencing this chapter elsewhere, use \ref{ChapterX}
+
+Patent networks are intrinsically linked to innovation and the economy. Although work has been done to extract economic meaning from these networks, economic growth through innovation is not well understood, and the value of a patent within these networks is often simplified to simply be the number of times they are cited.
+
+Patents are a legal document claiming ownership of innovation. Through this process patent citations are legal obligations to reference 'prior art' any of which are initially missing from the application are added by the patent examiner. The objectivity of the examiner and legal basis for citations is what differentiates them from other bibliographic citation networks such as academic citations. 
+
+Patents and by proxy innovation can be viewed as a combinatorial process \cite{youn2015invention}. In this way innovation like research 'stands on the shoulders of giants'. Through a greater understanding of the formation and evolution of the network insights can be gained into the process of innovation which impacts econometrics and companies trying to identify areas to direct their research alike. Many believe that over the last ten years we are in the middle of technological information revolution \cite{castells2011rise} and understanding the extent and impact of this on innovation. 
+
+The US patent office database offers an opportunity for analysis as one of the largest patent collections openly available. Its large scale encompasses all the patents granted in the US from 1986 - 2015 in a structured although messy form, with more than 5 million patents and 110 million citations over the 30 year period.  The scale of the database and large number of features allows for unique insight into the structure of patent citation networks although along with the messiness requires big data solutions to achieve this. The USPTO network is relatively enclosed network with 84.5\% of its citations being internal since 2005 relative to a large scale study of academic citations which had 19-36 \% internal citations \cite{redner2004citation}. 
+
+The aims of this project is to use the USPTO database in order to conduct some exploratory analysis and gain some statistical insight into the structure and evolution of the network and how it may be changing over the lifespan of the network, in particular the last 10 years. 
+
+\section{Dissertation Structure}
+This dissertation is organised as follows: In Chapter 2 there is a review of the literature and history of patent network research. In chapter 3 the data pipeline is explained, describing the processes by which the data has been parsed, cleaned and feature engineered before analysis could be done. Chapter 4 describes the analysis and discussion in a narrative flow, starting with some overviews of the network and reproduction of the work of Valverde et al. before analysing the coloured network of two classes of citation based on who contributed the citation to the patent. In chapter 5 the basic results are reviewed, implications and further work discussed. 

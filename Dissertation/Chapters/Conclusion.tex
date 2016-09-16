@@ -1,0 +1,27 @@
+% Chapter Template
+
+\chapter{Conclusion} % Main chapter title
+	
+\label{ChapterX} % Change X to a consecutive number; for referencing this chapter elsewhere, use \ref{ChapterX}
+
+%----------------------------------------------------------------------------------------
+%	SECTION 1
+%----------------------------------------------------------------------------------------
+
+\section{Review}
+
+While we have not tested for distributions such exponential cut-off to power law distributions or extended power laws, we have analytically shown the log-normal is the most likely fit to the overall degree-distribution of the current network. The chance of a power-law fit is sufficiently unlikely that it can be discounted as a hypothesis through bootstrapping and log-likelihood comparisons. 
+
+The network has evolved to this point at the beginning of the data-set comparison techniques couldn't distinguish between power-law and log-normal distributions but were in favour of power-law while over time the distribution is became less similar to a power-law and more similar to a log-normal.
+
+We coloured the network into two classes from 2001 to 2015 depending on the role of the individual making the citation, the Examiner network and the Other network. We found that these are fairly disparate networks with small negative correlations between the two and different functional forms (although small positive correlations at extreme order values). The Other citations dominate in number so their structure is similar to that found in the aggregate over these years but the Examiner network seems to emulate the aggregate network in the years before these classes could be distinguished (1976 to 2000), with log-normal parameters fits similar to these times and Power-law/log-normal P values calculated yielding similar results, i.e. that neither power-law and log-normal can be discounted but the power-law is more likely (P = 0.637). Finally the average number of citations changing with time showing significant growth in the Other network further drowning out the Examiner network but supporting a hypothesis that in the past the Other network smaller relative to the Examiner and that this change in how applicants are interacting with patents is the cause of a lot of the changes in the patent network over the last decade. 
+
+\section{Further Research}
+
+As mentioned in the introduction showing a log-normal or power-law form is not sufficient to identify preferential attachment or other such mechanisms. Considering the contradicting research in the USPTO data-set research identifying the presence and nature of any preferential attachment mechanisms is important future research. 
+
+One of the main research questions of this project was to identify the structural changes to the patent network over time and relate that to claims of an information revolution or economic identifiers. While we have shown there are major structural changes and that they are linked to the change in interaction of the applicant of a patent. This hasn't been linked to external factors. Further research could seek to achieve this in a number of ways, correlating changes to the patent system with econometric information answering questions like how is innovation affected by recession. More importantly would be through studying the how the technology sectors vary,  identified large structural differences between technology sectors, relating this research with temporal changes can give a much better idea of how innovation shifts between different technological areas \cite{gress2010properties}. 
+
+The nature of the different classes of citation form different types of relationship between the same nodes. This can be represented as an unweighted multi-layer network. Representing the network in this manner can allow for techniques which study the whole network in a way which doesn't ignore the different nature of relationship between an Examiner citation and a Applicant citation \cite{hardtoSpell}. 
+
+Finally a more directly practical direction for further research can focus on the prediction of success, and evaluation of value to the network of different patents. While research has been done on these topics adding the additional features and information from the Examiner network may improve the accuracy of these models. Additionally the extra features may prove useful in other ways such as clustering algorithms and anomaly detection in order to identify patent trolls. 
